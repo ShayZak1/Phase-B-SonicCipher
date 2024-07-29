@@ -10,7 +10,7 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
 
   const startRecording = () => {
     setIsRecording(true);
-    onStartRecording(); // Notify that recording has started
+    onStartRecording(); // .....Notify that recording has started
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
       setStream(stream);
       const recorder = new MediaRecorder(stream, {
