@@ -63,7 +63,7 @@ const TranslatorApp = ({ onClose }) => {
   const translateText = async () => {
     if (plan === "Free") {
       try {
-        const response = await axios.post('http://localhost:5000/translate', {
+        const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
           q: inputText,
           source: sourceLang,
           target: targetLang,
@@ -82,7 +82,7 @@ const TranslatorApp = ({ onClose }) => {
 
   const convertTextToSpeech = async (text, languageCode) => {
     try {
-      const response = await axios.post('http://localhost:5000/text-to-speech', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/text-to-speech`, {
         text,
         languageCode,
       });

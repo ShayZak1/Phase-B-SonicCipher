@@ -12,7 +12,7 @@ const TextToSpeech = () => {
 
   const convertTextToSpeech = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/text-to-speech', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/text-to-speech`, {
         text,
         languageCode: 'en-US' // You can make this dynamic based on user input
       });

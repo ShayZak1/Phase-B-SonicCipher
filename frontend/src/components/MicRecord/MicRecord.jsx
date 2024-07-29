@@ -56,7 +56,7 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
 
   const sendAudioToBackend = async (audioBase64) => {
     try {
-      const response = await axios.post('http://localhost:5000/speech-to-text', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/speech-to-text`, {
         audioBase64,
         languageCode: sourceLang,
       });
