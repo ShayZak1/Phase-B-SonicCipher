@@ -3,7 +3,7 @@ import videoFile from '../../assets/img/video2.mp4'; // Correct path to your vid
 
 const Hero = ({ onStart }) => {
   return (
-    <div id="hero" className="relative bg-fixed bg-no-repeat bg-center py-16 px-4">
+    <div id="hero" className="relative bg-fixed bg-no-repeat bg-center h-screen">
       <video
         autoPlay
         loop
@@ -14,8 +14,8 @@ const Hero = ({ onStart }) => {
       >
         <source src={videoFile} type="video/mp4" />
       </video>
-      <div className="relative text-black flex flex-col justify-center">
-        <div className="max-w-[680px] w-full h-screen mx-auto flex flex-col justify-center">
+      <div className="relative text-black flex flex-col justify-center h-full">
+        <div className="max-w-[680px] w-full mx-auto flex flex-col justify-center h-full px-4 py-16">
           <p className="font-bold p-2 text-4xl sm:text-6xl md:text-7xl text-mainColor">SonicCipher</p>
           <h1 className="text-4xl sm:text-6xl md:text-7xl">
             <span className="text-white">Break the gap </span><span className="text-mainColor">between languages</span>
