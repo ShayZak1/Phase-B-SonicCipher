@@ -8,6 +8,7 @@ const Hero = ({ onStart }) => {
         autoPlay
         loop
         muted
+        playsInline
         className="absolute inset-0 w-full h-full object-cover"
         style={{ filter: 'brightness(70%) blur(2px)' }}
       >
