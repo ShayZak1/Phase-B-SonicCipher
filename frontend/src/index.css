@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #000300;
+}
+
+@layer components {
+  .button {
+    @apply w-52 rounded-md font-medium my-4 py-3;
+  }
+
+  .button-main {
+    @apply bg-mainColor text-white;
+  }
+
+  .button-main:hover {
+    @apply bg-white text-mainColor outline-mainColor;
+  }
+
+  .footer-link {
+    @apply py-2 text-sm inline-block text-gray-300;
+  }
+
+  .footer-link:hover {
+    @apply hover:text-mainColor;
+  }
+
+  .language {
+    @apply text-lg text-right uppercase cursor-pointer;
+  }
+
+  .textarea {
+    @apply w-full h-48 resize-none bg-[#151515] shadow-md shadow-black rounded-lg px-4 py-2 font-light leading-5 text-white;
+  }
+
+  .translator-bg {
+    @apply relative w-full h-screen;
+  }
+
+  #bg-video {
+    @apply absolute top-0 left-0 w-full h-full object-cover;
+  }
+
+  .content {
+    @apply relative z-10;
+  }
+
+  .translator-upbg {
+    @apply w-[90%] max-w-lg max-[392px]:h-[90%] sm:h-auto bg-[#2d2d2d] rounded-xl shadow-2xl shadow-gray-800 flex flex-col;
+  }
+}
