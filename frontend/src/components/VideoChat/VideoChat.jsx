@@ -2,6 +2,7 @@ import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import Peer from 'peerjs';
 import { peerConfig1 } from '../../config'; // Import the configuration
+import videoFile from '../../assets/img/TranslateBg.mp4';
 
 const VideoChat = () => {
   const [myId, setMyId] = useState('');
@@ -26,7 +27,7 @@ const VideoChat = () => {
       peerRef.current = peer;
 
       peer.on('open', (id) => {
-        setMyId(id);
+        setMyId(id); // Set the generated ID if no nickname is provided
       });
 
       peer.on('call', (incomingCall) => {
@@ -54,7 +55,7 @@ const VideoChat = () => {
 
   useEffect(() => {
     init();
-    
+
     return () => {
       if (peerRef.current) {
         peerRef.current.destroy();
@@ -65,26 +66,30 @@ const VideoChat = () => {
   const connect = (e) => {
     e.preventDefault();
 
-    const connection = peerRef.current.connect(recId);
-    connRef.current = connection;
+    if (!connected) {
+      const connection = peerRef.current.connect(recId);
+      connRef.current = connection;
 
-    connection.on('open', () => {
-      setConnected(true);
-      connection.on('data', (data) => {
-        setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
+      connection.on('open', () => {
+        setConnected(true);
+        connection.on('data', (data) => {
+          setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
+        });
+
+        const call = peerRef.current.call(recId, localStreamRef.current);
+        callRef.current = call;
+
+        call.on('stream', (remoteStream) => {
+          remoteVideoRef.current.srcObject = remoteStream;
+        });
       });
 
-      const call = peerRef.current.call(recId, localStreamRef.current);
-      callRef.current = call;
-
-      call.on('stream', (remoteStream) => {
-        remoteVideoRef.current.srcObject = remoteStream;
+      connection.on('error', (err) => {
+        console.error('Connection error:', err);
       });
-    });
-
-    connection.on('error', (err) => {
-      console.error('Connection error:', err);
-    });
+    } else {
+      disconnect();
+    }
   };
 
   const disconnect = () => {
@@ -114,54 +119,64 @@ const VideoChat = () => {
   };
 
   return (
-    <div id="videot" className="max-w-[500px] mx-auto bg-white">
-      <h1 className="text-2xl flex justify-center py-4">Communicator</h1>
-      <form onSubmit={connect}>
-        <div className="w-full">
-          <div>My Nickname</div>
-          <input
-            type="text"
-            className="border border-gray-400 p-2 rounded w-full"
-            value={myId}
-            readOnly
-            onClick={(e) => e.target.select()}
-          />
-        </div>
-        <div className="w-full">
-          <div>Recipient</div>
-          <input
-            type="text"
-            className="border border-gray-400 p-2 rounded w-full"
-            value={recId}
-            onChange={(e) => setRecId(e.target.value)}
-            readOnly={connected}
-          />
-        </div>
-        <div className="py-2">
-          <button
-            type="submit"
-            className="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-[9px] px-4 rounded"
-            disabled={connected}
-          >
-            {connected ? 'Disconnect' : 'Connect'}
-          </button>
-        </div>
-      </form>
-      <div className="flex justify-center gap-2 py-4 px-1">
-        <video ref={localVideoRef} autoPlay muted className="max-w-[50%] border border-gray-400 p-2 rounded"></video>
-        <video ref={remoteVideoRef} autoPlay className="max-w-[50%] border border-gray-400 p-2 rounded"></video>
-      </div>
-      {connected && (
-        <div className="flex flex-col w-full">
-          <div className="grow border border-gray-400 w-full h-60 mb-4 rounded overflow-y-auto overflow-x-hidden px-4 py-2">
-            {messages.map((msg, index) => (
-              <div key={index} className={`${msg.isMine ? 'text-right pl-12' : 'text-left pr-12'}`}>
-                {msg.text}
-              </div>
-            ))}
+    <div className="relative w-full h-full max-h-screen flex flex-col gap-4 justify-center items-center px-4 sm:px-2 pt-12 pb-6 relative overflow-hidden video-chat-bg">
+      <video
+        style={{ filter: 'brightness(70%) blur(5px)' }}
+        autoPlay
+        muted
+        loop
+        playsInline
+        id="bg-video"
+        className="absolute top-0 left-0 w-full h-full object-cover"
+      >
+        <source src={videoFile} type="video/mp4" />
+      </video>
+      <div className="relative z-10 w-full h-full flex flex-col items-center px-4 py-6 bg-gray-800 bg-opacity-70 rounded-lg">
+        <h1 className="text-2xl text-white font-bold mb-4">Communicator</h1>
+        <form onSubmit={connect} className="w-full max-w-sm">
+          <div className="mb-4">
+            <label className="block text-white mb-2">My Nickname</label>
+            <input
+              type="text"
+              className="border border-gray-400 p-2 rounded w-full"
+              value={myId}
+              readOnly
+              onClick={(e) => e.target.select()}
+            />
           </div>
-          <form onSubmit={sendMessage}>
-            <div className="flex justify-between gap-2">
+          <div className="mb-4">
+            <label className="block text-white mb-2">Recipient</label>
+            <input
+              type="text"
+              className="border border-gray-400 p-2 rounded w-full"
+              value={recId}
+              onChange={(e) => setRecId(e.target.value)}
+              readOnly={connected}
+            />
+          </div>
+          <div className="mb-4">
+            <button
+              type="submit"
+              className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              {connected ? 'Disconnect' : 'Connect'}
+            </button>
+          </div>
+        </form>
+        <div className="flex flex-col sm:flex-row justify-center gap-2 py-4 px-1 w-full">
+          <video ref={localVideoRef} autoPlay muted className="w-full sm:w-1/2 border border-gray-400 p-2 rounded"></video>
+          <video ref={remoteVideoRef} autoPlay className="w-full sm:w-1/2 border border-gray-400 p-2 rounded"></video>
+        </div>
+        {connected && (
+          <div className="flex flex-col w-full max-w-sm">
+            <div className="grow border border-gray-400 w-full h-60 mb-4 rounded overflow-y-auto overflow-x-hidden px-4 py-2 bg-gray-900 text-white">
+              {messages.map((msg, index) => (
+                <div key={index} className={`${msg.isMine ? 'text-right pl-12' : 'text-left pr-12'}`}>
+                  {msg.text}
+                </div>
+              ))}
+            </div>
+            <form onSubmit={sendMessage} className="w-full flex gap-2">
               <input
                 type="text"
                 className="border border-gray-400 p-2 rounded grow"
@@ -173,11 +188,11 @@ const VideoChat = () => {
               >
                 Send
               </button>
-            </div>
-          </form>
-        </div>
-      )}
-      <div id="statusBar" className="text-center">{connected ? 'connected' : 'not connected'}</div>
+            </form>
+          </div>
+        )}
+        <div id="statusBar" className="text-center text-white mt-4">{connected ? 'connected' : 'not connected'}</div>
+      </div>
     </div>
   );
 };

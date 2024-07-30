@@ -38,6 +38,17 @@ const App = () => {
         </div>
       ) : showVideoChat ? (
         <div className="video-chat-bg">
+          <video
+            style={{ filter: 'brightness(70%) blur(5px)' }}
+            autoPlay
+            muted
+            loop
+            playsInline
+            id="bg-video"
+            className="absolute top-0 left-0 w-full h-full object-cover"
+          >
+            <source src={videoFile} type="video/mp4" />
+          </video>
           <div className="relative z-10 w-full h-full flex justify-center items-center">
             <VideoChat />
           </div>
