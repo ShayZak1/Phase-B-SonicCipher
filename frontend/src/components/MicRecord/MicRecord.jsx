@@ -8,14 +8,28 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
   const [recordingMessage, setRecordingMessage] = useState('');
   const [stream, setStream] = useState(null);
 
-  const startRecording = () => {
-    setIsRecording(true);
-    onStartRecording(); // .....Notify that recording has started
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  const startRecording = async () => {
+    try {
+      setIsRecording(true);
+      onStartRecording(); // Notify that recording has started
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setStream(stream);
-      const recorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-      });
+      
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/ogg;codecs=opus';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/ogg';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = '';
+      }
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       setMediaRecorder(recorder);
       recorder.start();
 
@@ -25,14 +39,15 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
       };
 
       recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunks, { type: mimeType || 'audio/webm' });
         const audioBase64 = await convertBlobToBase64(audioBlob);
         await sendAudioToBackend(audioBase64);
         onStopRecording(); // Notify that recording has stopped
       };
-    }).catch(error => {
+    } catch (error) {
+      setIsRecording(false);
       setRecordingMessage(`Error accessing microphone: ${error.message}`);
-    });
+    }
   };
 
   const stopRecording = () => {
