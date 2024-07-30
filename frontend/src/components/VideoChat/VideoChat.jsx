@@ -65,26 +65,30 @@ const VideoChat = ({ onClose }) => {
   const connect = (e) => {
     e.preventDefault();
 
-    const connection = peerRef.current.connect(recId);
-    connRef.current = connection;
+    if (!connected) {
+      const connection = peerRef.current.connect(recId);
+      connRef.current = connection;
 
-    connection.on('open', () => {
-      setConnected(true);
-      connection.on('data', (data) => {
-        setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
+      connection.on('open', () => {
+        setConnected(true);
+        connection.on('data', (data) => {
+          setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
+        });
+
+        const call = peerRef.current.call(recId, localStreamRef.current);
+        callRef.current = call;
+
+        call.on('stream', (remoteStream) => {
+          remoteVideoRef.current.srcObject = remoteStream;
+        });
       });
 
-      const call = peerRef.current.call(recId, localStreamRef.current);
-      callRef.current = call;
-
-      call.on('stream', (remoteStream) => {
-        remoteVideoRef.current.srcObject = remoteStream;
+      connection.on('error', (err) => {
+        console.error('Connection error:', err);
       });
-    });
-
-    connection.on('error', (err) => {
-      console.error('Connection error:', err);
-    });
+    } else {
+      disconnect();
+    }
   };
 
   const disconnect = () => {
@@ -152,8 +156,8 @@ const VideoChat = ({ onClose }) => {
         </div>
       </form>
       <div className="flex justify-center gap-4 mt-4">
-        <video ref={localVideoRef} autoPlay muted className="w-1/2 border border-gray-600 rounded-md"></video>
-        <video ref={remoteVideoRef} autoPlay className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={localVideoRef} autoPlay muted playsInline className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={remoteVideoRef} autoPlay playsInline className="w-1/2 border border-gray-600 rounded-md"></video>
       </div>
       {connected && (
         <div className="mt-4">
