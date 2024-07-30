@@ -50,7 +50,7 @@ const App = () => {
             <source src={videoFile} type="video/mp4" />
           </video>
           <div className="relative z-10 w-full h-full flex justify-center items-center">
-            <VideoChat />
+            <VideoChat onClose={() => setShowVideoChat(false)} />
           </div>
         </div>
       ) : (

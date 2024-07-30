@@ -4,7 +4,7 @@ import Peer from 'peerjs';
 import { peerConfig1 } from '../../config'; // Import the configuration
 import videoFile from '../../assets/img/TranslateBg.mp4';
 
-const VideoChat = () => {
+const VideoChat = ({ onClose }) => {
   const [myId, setMyId] = useState('');
   const [recId, setRecId] = useState('');
   const [connected, setConnected] = useState(false);
@@ -120,18 +120,11 @@ const VideoChat = () => {
 
   return (
     <div className="relative w-full h-full max-h-screen flex flex-col gap-4 justify-center items-center px-4 sm:px-2 pt-12 pb-6 relative overflow-hidden video-chat-bg">
-      <video
-        style={{ filter: 'brightness(70%) blur(5px)' }}
-        autoPlay
-        muted
-        loop
-        playsInline
-        id="bg-video"
-        className="absolute top-0 left-0 w-full h-full object-cover"
-      >
-        <source src={videoFile} type="video/mp4" />
-      </video>
+
       <div className="relative z-10 w-full h-full flex flex-col items-center px-4 py-6 bg-gray-800 bg-opacity-70 rounded-lg">
+        <button className="absolute top-4 right-4" onClick={onClose}>
+          <i className="fa-solid fa-xmark text-xl text-white"></i>
+        </button>
         <h1 className="text-2xl text-white font-bold mb-4">Communicator</h1>
         <form onSubmit={connect} className="w-full max-w-sm">
           <div className="mb-4">
