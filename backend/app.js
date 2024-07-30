@@ -99,13 +99,20 @@ app.post('/openai-translate', async (req, res) => {
   }
 
   try {
-    const prompt = ` according to the following specifications: ${additionalText} Translate the following text from ${source} to ${target} \n\nText: ${q}\n\n`;
+    const prompt = `You are an expert translator specializing in translating text from ${source} to ${target}. Please provide a translation that accurately reflects the original meaning and incorporates the following specifications: ${additionalText}.\n\n
+    Examples of translations:
+    English: "How are you?" -> Hebrew (formal): "מה שלומך?"
+    English: "How are you?" -> Hebrew (slang): "מה קורה?"
+
+    Now translate the following text:
+    "${q}"`;
+
     console.log('Generated prompt:', prompt); // Log the generated prompt
 
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: "gpt-3.5-turbo", // Use a supported chat model
+      model: "gpt-4",
       messages: [
-        { role: "system", content: "You are a helpful assistant that translates text according to given specifications." },
+        { role: "system", content: "You are a highly accurate translation assistant." },
         { role: "user", content: prompt }
       ],
       max_tokens: 1000,
