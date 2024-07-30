@@ -1,36 +1,41 @@
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import axios from 'axios';
 
-const TextToSpeech = () => {
-  const [text, setText] = useState('');
+const TextToSpeech = ({ text, languageCode }) => {
   const [audioUrl, setAudioUrl] = useState('');
+  const audioRef = useRef(null);
 
-  const handleTextChange = (e) => {
-    setText(e.target.value);
-  };
+  useEffect(() => {
+    const convertTextToSpeech = async () => {
+      if (!text) return;
 
-  const convertTextToSpeech = async () => {
-    try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/text-to-speech`, {
-        text,
-        languageCode: 'en-US' // You can make this dynamic based on user input
+      try {
+        const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/text-to-speech`, {
+          text,
+          languageCode,
+        });
+        setAudioUrl(response.data.audioContent);
+      } catch (error) {
+        console.error('Error converting text to speech:', error);
+      }
+    };
+
+    convertTextToSpeech();
+  }, [text, languageCode]);
+
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+      // Try to play the audio
+      audioRef.current.play().catch(error => {
+        console.error('Error playing audio:', error);
       });
-      setAudioUrl(response.data.audioContent);
-    } catch (error) {
-      console.error('Error converting text to speech:', error);
     }
-  };
+  }, [audioUrl]);
 
   return (
     <div className="text-to-speech">
-      <textarea
-        value={text}
-        onChange={handleTextChange}
-        placeholder="Enter text to convert to speech"
-      ></textarea>
-      <button onClick={convertTextToSpeech}>Convert to Speech</button>
-      {audioUrl && <audio controls src={`data:audio/mp3;base64,${audioUrl}`}></audio>}
+      {audioUrl && <audio ref={audioRef} controls src={`data:audio/mp3;base64,${audioUrl}`}></audio>}
     </div>
   );
 };

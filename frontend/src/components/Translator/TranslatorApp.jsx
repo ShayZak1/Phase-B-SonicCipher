@@ -17,6 +17,7 @@ const TranslatorApp = ({ onClose }) => {
   const [plan, setPlan] = useState("Free"); // State to manage the selected plan
   const dropdownRef = useRef(null);
   const textareaRef = useRef(null); // Ref for textarea
+  const audioRef = useRef(null); // Ref for audio element
   const maxChars = 200;
 
   const handleMaxChar = (e) => {
@@ -91,6 +92,14 @@ const TranslatorApp = ({ onClose }) => {
       console.error('Error converting text to speech:', error);
     }
   };
+
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+      audioRef.current.play().catch(error => {
+        console.error('Error playing audio:', error);
+      });
+    }
+  }, [audioUrl]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -223,7 +232,7 @@ const TranslatorApp = ({ onClose }) => {
         <div className="absolute bottom-2 right-4 text-gray-400">{translatedText.length}/200</div>
       </div>
 
-      {audioUrl && <audio controls src={`data:audio/mp3;base64,${audioUrl}`} />}
+      {audioUrl && <audio ref={audioRef} controls src={`data:audio/mp3;base64,${audioUrl}`} />}
     </div>
   );
 };

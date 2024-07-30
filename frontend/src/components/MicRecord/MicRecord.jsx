@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
 import axios from 'axios';
 
 const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording }) => {
@@ -8,13 +8,20 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
   const [recordingMessage, setRecordingMessage] = useState('');
   const [stream, setStream] = useState(null);
 
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const dataArrayRef = useRef(null);
+  const sourceRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animationFrameIdRef = useRef(null);
+
   const startRecording = async () => {
     try {
       setIsRecording(true);
       onStartRecording(); // Notify that recording has started
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setStream(stream);
-      
+
       let mimeType = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'audio/webm';
@@ -43,7 +50,10 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
         const audioBase64 = await convertBlobToBase64(audioBlob);
         await sendAudioToBackend(audioBase64);
         onStopRecording(); // Notify that recording has stopped
+        stopAnalyzing();
       };
+
+      startAnalyzing(stream);
     } catch (error) {
       setIsRecording(false);
       setRecordingMessage(`Error accessing microphone: ${error.message}`);
@@ -58,6 +68,7 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
+    stopAnalyzing();
   };
 
   const convertBlobToBase64 = (blob) => {
@@ -78,26 +89,97 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
       const transcript = response.data.results
         .map(result => result.alternatives[0].transcript)
         .join('\n');
-      console.log('Transcript: ', transcript);
       if (onTranscript) {
         onTranscript(transcript);
       }
     } catch (error) {
-      console.error('Error transcribing audio:', error.response ? error.response.data : error.message);
       setRecordingMessage(`Error transcribing audio: ${error.response ? error.response.data.error.message : error.message}`);
     }
   };
 
+  const startAnalyzing = (stream) => {
+    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    analyserRef.current = audioContextRef.current.createAnalyser();
+    sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
+    sourceRef.current.connect(analyserRef.current);
+    analyserRef.current.fftSize = 2048;
+    const bufferLength = analyserRef.current.fftSize;
+    dataArrayRef.current = new Uint8Array(bufferLength);
+
+    const canvas = canvasRef.current;
+    if (!canvas) return; // Ensure canvas is available
+    const canvasCtx = canvas.getContext('2d');
+
+    const draw = () => {
+      if (!canvasCtx) return; // Ensure canvas context is available
+
+      analyserRef.current.getByteTimeDomainData(dataArrayRef.current);
+
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+      canvasCtx.fillStyle = 'rgba(255, 255, 255, 0)';
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = 'rgb(0, 0, 255)'; // Change the color of the waveform here
+
+      canvasCtx.beginPath();
+
+      const sliceWidth = (canvas.width * 1.0) / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArrayRef.current[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(canvas.width, canvas.height / 2);
+      canvasCtx.stroke();
+
+      animationFrameIdRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+  };
+
+  const stopAnalyzing = () => {
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    if (animationFrameIdRef.current) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) return; // Ensure canvas is available
+    const canvasCtx = canvas.getContext('2d');
+    if (!canvasCtx) return; // Ensure canvas context is available
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
   return (
-    <div className="flex flex-row justify-center items-center">
-      <button
-        onClick={isRecording ? stopRecording : startRecording}
-        className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full mb-2 ${isRecording ? 'bg-red-500' : ''}`}
-      >
-        <i className={`fa-solid ${isRecording ? 'fa-microphone-slash' : 'fa-microphone'} text-2xl`} />
-      </button>
-      {isRecording && <p className="text-red-500 font-bold">Recording...</p>}
-      {recordingMessage && <p className="text-gray-500">{recordingMessage}</p>}
+    <div className="flex flex-col items-center">
+      <div className="flex flex-row items-center">
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full ${isRecording ? 'bg-red-500' : ''}`}
+        >
+          <i className={`fa-solid ${isRecording ? 'fa-microphone-slash' : 'fa-microphone'} text-2xl`} />
+        </button>
+        {recordingMessage && <p className="text-gray-500 ml-4">{recordingMessage}</p>}
+      </div>
+      {isRecording && (
+        <canvas ref={canvasRef} width="200" height="50" className="mt-4"></canvas>
+      )}
     </div>
   );
 };
