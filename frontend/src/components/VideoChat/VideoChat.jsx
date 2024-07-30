@@ -118,7 +118,7 @@ const VideoChat = ({ onClose }) => {
   };
 
   return (
-    <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white ">
+    <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={onClose}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
@@ -156,8 +156,8 @@ const VideoChat = ({ onClose }) => {
         </div>
       </form>
       <div className="flex justify-center gap-4 mt-4">
-        <video ref={localVideoRef} autoPlay muted playsInline className="w-1/2 border border-gray-600 rounded-md"></video>
-        <video ref={remoteVideoRef} autoPlay playsInline className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={localVideoRef} autoPlay muted playsInline webkit-playsinline className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={remoteVideoRef} autoPlay playsInline webkit-playsinline className="w-1/2 border border-gray-600 rounded-md"></video>
       </div>
       {connected && (
         <div className="mt-4">
