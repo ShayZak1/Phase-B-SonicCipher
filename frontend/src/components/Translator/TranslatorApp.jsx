@@ -77,7 +77,20 @@ const TranslatorApp = ({ onClose }) => {
         console.error("Error translating text:", error);
       }
     } else {
-      // Premium plan translation handled in PremiumTranslator component
+      try {
+        const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/openai-translate`, {
+          q: inputText,
+          source: sourceLang,
+          target: targetLang,
+          format: "text",
+          additionalText: "Please use Hebrew slang."
+        });
+        const translated = response.data.data.translations[0].translatedText;
+        setTranslatedText(translated);
+        convertTextToSpeech(translated, targetLang);
+      } catch (error) {
+        console.error("Error translating text with OpenAI:", error);
+      }
     }
   };
 
@@ -110,8 +123,8 @@ const TranslatorApp = ({ onClose }) => {
 
   const handleTranscript = (transcript) => {
     if (transcript.length + inputText.length <= maxChars) {
-      setInputText(prevText => prevText + transcript);
-      setCharCount(prevCount => prevCount + transcript.length);
+      setInputText(transcript);
+      setCharCount(transcript.length);
     }
   };
 
@@ -232,7 +245,7 @@ const TranslatorApp = ({ onClose }) => {
         <div className="absolute bottom-2 right-4 text-gray-400">{translatedText.length}/200</div>
       </div>
 
-      {audioUrl && <audio ref={audioRef} controls src={`data:audio/mp3;base64,${audioUrl}`} />}
+      {audioUrl && <audio ref={audioRef} src={`data:audio/mp3;base64,${audioUrl}`} autoPlay />}
     </div>
   );
 };

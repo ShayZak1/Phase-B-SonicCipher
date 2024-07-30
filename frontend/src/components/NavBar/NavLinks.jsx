@@ -1,10 +1,14 @@
 import { h } from 'preact';
 
-const NavLinks = ({ links, type }) => {
-    const handleClick = (e) => {
+const NavLinks = ({ links, type, onStartVideoChat }) => {
+    const handleClick = (e, link) => {
         e.preventDefault();
-        const id = e.target.attributes.getNamedItem('href').value;
-        document.querySelector(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (link.name === 'VideoTranslation') {
+            onStartVideoChat();
+        } else {
+            const id = e.target.attributes.getNamedItem('href').value;
+            document.querySelector(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     return (
@@ -13,7 +17,7 @@ const NavLinks = ({ links, type }) => {
                 links.map((link, index) => {
                     return (
                         <li className={`p-4 ${type === 'mobile' ? '' : 'border-b border-b-gray-50'}`} key={index}>
-                            <a onClick={handleClick} href={link.link}> {link.name} </a>
+                            <a onClick={(e) => handleClick(e, link)} href={link.link}> {link.name} </a>
                         </li>
                     )
                 })

@@ -6,9 +6,16 @@ import Sonicintro from "./components/Sonicintro";
 import NavBar from "./components/NavBar";
 import TranslatorApp from "./components/Translator/TranslatorApp";
 import videoFile from './assets/img/TranslateBg.mp4';
+import VideoChat from './components/VideoChat/VideoChat';
 
 const App = () => {
   const [showTranslatorApp, setTranslatorApp] = useState(false);
+  const [showVideoChat, setShowVideoChat] = useState(false);
+
+  const handleVideoChat = () => {
+    setTranslatorApp(false);
+    setShowVideoChat(true);
+  };
 
   return (
     <div className="relative w-full h-screen">
@@ -29,9 +36,15 @@ const App = () => {
             <TranslatorApp onClose={() => setTranslatorApp(false)} />
           </div>
         </div>
+      ) : showVideoChat ? (
+        <div className="video-chat-bg">
+          <div className="relative z-10 w-full h-full flex justify-center items-center">
+            <VideoChat />
+          </div>
+        </div>
       ) : (
         <>
-          <NavBar onStart={() => setTranslatorApp(true)} />
+          <NavBar onStart={() => setTranslatorApp(true)} onStartVideoChat={handleVideoChat} />
           <Hero onStart={() => setTranslatorApp(true)} />
           <Sonicintro onStart={() => setTranslatorApp(true)} />
           <ContactUs onStart={() => setTranslatorApp(true)} />

@@ -14,6 +14,7 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
   const sourceRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameIdRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const startRecording = async () => {
     try {
@@ -54,6 +55,33 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
       };
 
       startAnalyzing(stream);
+
+      // Start real-time transcription
+      if (!('webkitSpeechRecognition' in window)) {
+        setRecordingMessage('Speech recognition not supported in this browser.');
+        return;
+      }
+
+      const recognition = new window.webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = sourceLang;
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          interimTranscript += event.results[i][0].transcript;
+        }
+        onTranscript(interimTranscript);
+      };
+
+      recognition.onerror = (event) => {
+        setRecordingMessage(`Error occurred in recognition: ${event.error}`);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+
     } catch (error) {
       setIsRecording(false);
       setRecordingMessage(`Error accessing microphone: ${error.message}`);
@@ -67,6 +95,9 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
     }
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
     }
     stopAnalyzing();
   };
