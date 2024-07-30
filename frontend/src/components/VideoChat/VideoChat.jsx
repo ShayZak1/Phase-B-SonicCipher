@@ -120,7 +120,17 @@ const VideoChat = ({ onClose }) => {
 
   return (
     <div className="relative w-full h-full max-h-screen flex flex-col gap-4 justify-center items-center px-4 sm:px-2 pt-12 pb-6 relative overflow-hidden video-chat-bg">
-
+      <video
+        style={{ filter: 'brightness(70%) blur(5px)' }}
+        autoPlay
+        muted
+        loop
+        playsInline
+        id="bg-video"
+        className="absolute top-0 left-0 w-full h-full object-cover"
+      >
+        <source src={videoFile} type="video/mp4" />
+      </video>
       <div className="relative z-10 w-full h-full flex flex-col items-center px-4 py-6 bg-gray-800 bg-opacity-70 rounded-lg">
         <button className="absolute top-4 right-4" onClick={onClose}>
           <i className="fa-solid fa-xmark text-xl text-white"></i>
@@ -157,8 +167,8 @@ const VideoChat = ({ onClose }) => {
           </div>
         </form>
         <div className="flex flex-col sm:flex-row justify-center gap-2 py-4 px-1 w-full">
-          <video ref={localVideoRef} autoPlay muted className="w-full sm:w-1/2 border border-gray-400 p-2 rounded"></video>
-          <video ref={remoteVideoRef} autoPlay className="w-full sm:w-1/2 border border-gray-400 p-2 rounded"></video>
+          <video ref={localVideoRef} autoPlay muted playsInline className="w-full sm:w-1/2 border border-gray-400 p-2 rounded"></video>
+          <video ref={remoteVideoRef} autoPlay playsInline className="w-full sm:w-1/2 border border-gray-400 p-2 rounded"></video>
         </div>
         {connected && (
           <div className="flex flex-col w-full max-w-sm">
