@@ -1,13 +1,15 @@
 import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import Peer from 'peerjs';
+import axios from 'axios';
 import { peerConfig1 } from '../../config';
 
-const VideoChat = ({ onClose }) => {
+const VideoChat = ({ onClose, userLanguage }) => {
   const [myId, setMyId] = useState('');
   const [recId, setRecId] = useState('');
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [subtitles, setSubtitles] = useState('');
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
@@ -34,6 +36,7 @@ const VideoChat = ({ onClose }) => {
         incomingCall.answer(localStream);
         incomingCall.on('stream', (remoteStream) => {
           remoteVideoRef.current.srcObject = remoteStream;
+          handleRemoteAudioStream(remoteStream);
         });
       });
 
@@ -52,6 +55,60 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
+  const handleRemoteAudioStream = (remoteStream) => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const mediaStreamSource = audioContext.createMediaStreamSource(remoteStream);
+    const processor = audioContext.createScriptProcessor(2048, 1, 1);
+    mediaStreamSource.connect(processor);
+    processor.connect(audioContext.destination);
+
+    processor.onaudioprocess = async (event) => {
+      const inputData = event.inputBuffer.getChannelData(0);
+      const audioBlob = new Blob([new Float32Array(inputData)], { type: 'audio/webm' });
+      const audioBase64 = await convertBlobToBase64(audioBlob);
+      const transcript = await transcribeAudio(audioBase64);
+      const translatedText = await translateText(transcript, userLanguage);
+      setSubtitles(translatedText);
+    };
+  };
+
+  const transcribeAudio = async (audioBase64) => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/speech-to-text`, {
+        audioBase64,
+        languageCode: 'en-US', // Assuming the speech-to-text API requires a language code
+      });
+      return response.data.results.map(result => result.alternatives[0].transcript).join('\n');
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
+      return '';
+    }
+  };
+
+  const translateText = async (text, targetLanguage) => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
+        q: text,
+        source: 'en', // Assuming the source language is English
+        target: targetLanguage,
+        format: 'text',
+      });
+      return response.data.data.translations[0].translatedText;
+    } catch (error) {
+      console.error('Error translating text:', error);
+      return '';
+    }
+  };
+
+  const convertBlobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
   useEffect(() => {
     init();
     
@@ -65,30 +122,27 @@ const VideoChat = ({ onClose }) => {
   const connect = (e) => {
     e.preventDefault();
 
-    if (!connected) {
-      const connection = peerRef.current.connect(recId);
-      connRef.current = connection;
+    const connection = peerRef.current.connect(recId);
+    connRef.current = connection;
 
-      connection.on('open', () => {
-        setConnected(true);
-        connection.on('data', (data) => {
-          setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
-        });
-
-        const call = peerRef.current.call(recId, localStreamRef.current);
-        callRef.current = call;
-
-        call.on('stream', (remoteStream) => {
-          remoteVideoRef.current.srcObject = remoteStream;
-        });
+    connection.on('open', () => {
+      setConnected(true);
+      connection.on('data', (data) => {
+        setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
       });
 
-      connection.on('error', (err) => {
-        console.error('Connection error:', err);
+      const call = peerRef.current.call(recId, localStreamRef.current);
+      callRef.current = call;
+
+      call.on('stream', (remoteStream) => {
+        remoteVideoRef.current.srcObject = remoteStream;
+        handleRemoteAudioStream(remoteStream);
       });
-    } else {
-      disconnect();
-    }
+    });
+
+    connection.on('error', (err) => {
+      console.error('Connection error:', err);
+    });
   };
 
   const disconnect = () => {
@@ -118,7 +172,7 @@ const VideoChat = ({ onClose }) => {
   };
 
   return (
-    <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
+    <div className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={onClose}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
@@ -156,9 +210,14 @@ const VideoChat = ({ onClose }) => {
         </div>
       </form>
       <div className="flex justify-center gap-4 mt-4">
-        <video ref={localVideoRef} autoPlay muted playsInline webkit-playsinline className="w-1/2 border border-gray-600 rounded-md"></video>
-        <video ref={remoteVideoRef} autoPlay playsInline webkit-playsinline className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={localVideoRef} autoPlay muted className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={remoteVideoRef} autoPlay className="w-1/2 border border-gray-600 rounded-md"></video>
       </div>
+      {subtitles && (
+        <div className="mt-4 bg-gray-900 p-4 rounded-md text-center">
+          {subtitles}
+        </div>
+      )}
       {connected && (
         <div className="mt-4">
           <div className="mb-4 bg-gray-700 p-4 rounded-md overflow-y-auto h-32">
