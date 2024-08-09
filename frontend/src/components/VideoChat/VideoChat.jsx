@@ -1,8 +1,8 @@
 import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import Peer from 'peerjs';
-import { peerConfig1 } from '../../config';
 import axios from 'axios';
+import { peerConfig1 } from '../../config';
 import { languages } from '../../LanguageData';
 
 const VideoChat = ({ onClose }) => {
@@ -53,7 +53,7 @@ const VideoChat = ({ onClose }) => {
         });
       });
 
-      startRecording(localStream);
+      startRecording(localStream); // Start recording automatically when initialized
 
     } catch (error) {
       console.error('Error accessing media devices.', error);
@@ -94,7 +94,7 @@ const VideoChat = ({ onClose }) => {
 
   const transcribeAudio = async (audioBase64) => {
     try {
-      const response = await axios.post('/speech-to-text', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/speech-to-text`, {
         audioBase64,
         languageCode: sourceLang,
       });
@@ -110,7 +110,7 @@ const VideoChat = ({ onClose }) => {
 
   const handleTranscript = async (transcript) => {
     try {
-      const response = await axios.post('/translate', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
         source: sourceLang,
         target: targetLang,
@@ -179,18 +179,8 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
-  useEffect(() => {
-    init();
-
-    return () => {
-      if (peerRef.current) {
-        peerRef.current.destroy();
-      }
-    };
-  }, []);
-
   return (
-    <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
+    <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white ">
       <button className="absolute top-4 right-4 text-2xl" onClick={onClose}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
@@ -284,7 +274,6 @@ const VideoChat = ({ onClose }) => {
         </div>
       )}
       <div id="statusBar" className="text-center text-gray-300 mt-2">{connected ? 'connected' : 'not connected'}</div>
-      {connected && <div className="absolute bottom-4 w-full text-center text-white bg-gray-900 bg-opacity-75 p-2 rounded-md">{subtitle}</div>}
     </div>
   );
 };
