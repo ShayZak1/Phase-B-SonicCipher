@@ -2,8 +2,8 @@ import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import Peer from 'peerjs';
 import axios from 'axios';
-import { peerConfig1 } from '../../config';
 import { languages } from '../../LanguageData';
+import { peerConfig1 } from '../../config';
 
 const VideoChat = ({ onClose }) => {
   const [myId, setMyId] = useState('');
@@ -53,6 +53,8 @@ const VideoChat = ({ onClose }) => {
         });
       });
 
+      startRecording(localStream);
+
     } catch (error) {
       console.error('Error accessing media devices.', error);
     }
@@ -92,7 +94,7 @@ const VideoChat = ({ onClose }) => {
 
   const transcribeAudio = async (audioBase64) => {
     try {
-      const response = await axios.post('/speech-to-text', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/speech-to-text`, {
         audioBase64,
         languageCode: sourceLang,
       });
@@ -108,7 +110,7 @@ const VideoChat = ({ onClose }) => {
 
   const handleTranscript = async (transcript) => {
     try {
-      const response = await axios.post('/translate', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
         source: sourceLang,
         target: targetLang,
@@ -141,8 +143,6 @@ const VideoChat = ({ onClose }) => {
         call.on('stream', (remoteStream) => {
           remoteVideoRef.current.srcObject = remoteStream;
         });
-
-        startRecording(localStreamRef.current); // Start recording when connected
       });
 
       connection.on('error', (err) => {
