@@ -61,10 +61,14 @@ app.post('/speech-to-text', async (req, res) => {
       },
     });
 
-    res.json(response.data);
+    if (response.data.results) {
+      res.json(response.data);
+    } else {
+      res.status(500).json({ error: 'Unexpected response format', details: response.data });
+    }
   } catch (error) {
-    console.error('Error transcribing audio:', error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Failed to transcribe audio' });
+    console.error('Error transcribing audio:', error);
+    res.status(500).json({ error: 'Failed to transcribe audio', details: error.message });
   }
 });
 
