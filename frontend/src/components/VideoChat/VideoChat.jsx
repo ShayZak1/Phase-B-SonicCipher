@@ -2,8 +2,8 @@ import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import Peer from 'peerjs';
 import { peerConfig1 } from '../../config';
-import axios from 'axios'; // Ensure axios is imported
-import { languages } from '../../LanguageData'; // Assuming you have a LanguageData.js file with language codes and names
+import axios from 'axios';
+import { languages } from '../../LanguageData';
 
 const VideoChat = ({ onClose }) => {
   const [myId, setMyId] = useState('');
@@ -53,7 +53,6 @@ const VideoChat = ({ onClose }) => {
         });
       });
 
-      // Start recording automatically when the call starts
       startRecording(localStream);
 
     } catch (error) {
@@ -179,6 +178,16 @@ const VideoChat = ({ onClose }) => {
       console.log('Connection is not open.');
     }
   };
+
+  useEffect(() => {
+    init();
+
+    return () => {
+      if (peerRef.current) {
+        peerRef.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
