@@ -17,6 +17,7 @@ const VideoChat = ({ onClose, userLanguage }) => {
   const callRef = useRef(null);
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
+  const isProcessingRef = useRef(false);
 
   const init = async () => {
     try {
@@ -63,12 +64,21 @@ const VideoChat = ({ onClose, userLanguage }) => {
     processor.connect(audioContext.destination);
 
     processor.onaudioprocess = async (event) => {
+      if (isProcessingRef.current) return;
+      isProcessingRef.current = true;
+
       const inputData = event.inputBuffer.getChannelData(0);
       const audioBlob = new Blob([new Float32Array(inputData)], { type: 'audio/webm' });
       const audioBase64 = await convertBlobToBase64(audioBlob);
       const transcript = await transcribeAudio(audioBase64);
-      const translatedText = await translateText(transcript, userLanguage);
-      setSubtitles(translatedText);
+      if (transcript) {
+        const translatedText = await translateText(transcript, userLanguage);
+        setSubtitles(translatedText);
+      }
+
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1000); // Add a delay to avoid overwhelming the server
     };
   };
 
@@ -78,7 +88,12 @@ const VideoChat = ({ onClose, userLanguage }) => {
         audioBase64,
         languageCode: 'en-US', // Assuming the speech-to-text API requires a language code
       });
-      return response.data.results.map(result => result.alternatives[0].transcript).join('\n');
+      if (response.data && response.data.results) {
+        return response.data.results.map(result => result.alternatives[0].transcript).join('\n');
+      } else {
+        console.error('Unexpected response format:', response.data);
+        return '';
+      }
     } catch (error) {
       console.error('Error transcribing audio:', error);
       return '';
@@ -93,7 +108,12 @@ const VideoChat = ({ onClose, userLanguage }) => {
         target: targetLanguage,
         format: 'text',
       });
-      return response.data.data.translations[0].translatedText;
+      if (response.data && response.data.data && response.data.data.translations) {
+        return response.data.data.translations[0].translatedText;
+      } else {
+        console.error('Unexpected response format:', response.data);
+        return '';
+      }
     } catch (error) {
       console.error('Error translating text:', error);
       return '';
@@ -111,7 +131,7 @@ const VideoChat = ({ onClose, userLanguage }) => {
 
   useEffect(() => {
     init();
-    
+
     return () => {
       if (peerRef.current) {
         peerRef.current.destroy();
