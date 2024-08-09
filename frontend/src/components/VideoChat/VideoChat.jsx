@@ -180,7 +180,7 @@ const VideoChat = ({ onClose }) => {
   };
 
   return (
-    <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white ">
+    <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={onClose}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
@@ -274,6 +274,11 @@ const VideoChat = ({ onClose }) => {
         </div>
       )}
       <div id="statusBar" className="text-center text-gray-300 mt-2">{connected ? 'connected' : 'not connected'}</div>
+      {subtitle && (
+        <div className="absolute bottom-4 w-full text-center text-white text-lg bg-gray-900 bg-opacity-50 p-2 rounded">
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 };
