@@ -3,13 +3,18 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import Peer from 'peerjs';
 import axios from 'axios';
 import { peerConfig1 } from '../../config';
+import { languages } from '../../LanguageData';
 
-const VideoChat = ({ onClose, userLanguage }) => {
+const VideoChat = ({ onClose }) => {
   const [myId, setMyId] = useState('');
   const [recId, setRecId] = useState('');
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState([]);
   const [subtitles, setSubtitles] = useState('');
+  const [targetLang, setTargetLang] = useState('en'); // Default language
+  const [showLanguages, setShowLanguages] = useState(false);
+  const [currentLanguageSelection, setCurrentLanguageSelection] = useState(null);
+
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
@@ -18,6 +23,7 @@ const VideoChat = ({ onClose, userLanguage }) => {
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
   const isProcessingRef = useRef(false);
+  const dropdownRef = useRef(null);
 
   const init = async () => {
     try {
@@ -72,7 +78,7 @@ const VideoChat = ({ onClose, userLanguage }) => {
       const audioBase64 = await convertBlobToBase64(audioBlob);
       const transcript = await transcribeAudio(audioBase64);
       if (transcript) {
-        const translatedText = await translateText(transcript, userLanguage);
+        const translatedText = await translateText(transcript, targetLang);
         setSubtitles(translatedText);
       }
 
@@ -191,6 +197,29 @@ const VideoChat = ({ onClose, userLanguage }) => {
     }
   };
 
+  const handleLanguageClick = () => {
+    setShowLanguages(true);
+  };
+
+  const handleLanguageSelect = (languageCode) => {
+    setTargetLang(languageCode);
+    setShowLanguages(false);
+  };
+
+  const handleClickOutside = (e) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      setShowLanguages(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showLanguages) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showLanguages]);
+
   return (
     <div className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={onClose}>
@@ -219,6 +248,36 @@ const VideoChat = ({ onClose, userLanguage }) => {
             onChange={(e) => setRecId(e.target.value)}
             readOnly={connected}
           />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="targetLang" className="block text-sm font-medium text-gray-300">Translation Language</label>
+          <div className="relative">
+            <button
+              type="button"
+              className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200 text-left"
+              onClick={handleLanguageClick}
+            >
+              {languages[targetLang] || targetLang}
+            </button>
+            {showLanguages && (
+              <div
+                className="absolute z-10 mt-1 w-full bg-gray-800 border border-gray-600 rounded-md shadow-lg"
+                ref={dropdownRef}
+              >
+                <ul className="max-h-48 overflow-y-auto">
+                  {Object.entries(languages).map(([code, name]) => (
+                    <li
+                      key={code}
+                      className="cursor-pointer hover:bg-gray-700 p-2"
+                      onClick={() => handleLanguageSelect(code)}
+                    >
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
         <div className="py-2">
           <button
