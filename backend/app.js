@@ -63,7 +63,7 @@ app.post('/speech-to-text', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    console.error('Error transcribing audio:', error);
+    console.error('Error transcribing audio:', error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Failed to transcribe audio' });
   }
 });
