@@ -53,8 +53,6 @@ const VideoChat = ({ onClose }) => {
         });
       });
 
-      startRecording(localStream); // Start recording automatically when initialized
-
     } catch (error) {
       console.error('Error accessing media devices.', error);
     }
@@ -94,7 +92,7 @@ const VideoChat = ({ onClose }) => {
 
   const transcribeAudio = async (audioBase64) => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/speech-to-text`, {
+      const response = await axios.post('/speech-to-text', {
         audioBase64,
         languageCode: sourceLang,
       });
@@ -110,7 +108,7 @@ const VideoChat = ({ onClose }) => {
 
   const handleTranscript = async (transcript) => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
+      const response = await axios.post('/translate', {
         q: transcript,
         source: sourceLang,
         target: targetLang,
@@ -143,6 +141,8 @@ const VideoChat = ({ onClose }) => {
         call.on('stream', (remoteStream) => {
           remoteVideoRef.current.srcObject = remoteStream;
         });
+
+        startRecording(localStreamRef.current); // Start recording when connected
       });
 
       connection.on('error', (err) => {
@@ -178,6 +178,16 @@ const VideoChat = ({ onClose }) => {
       console.log('Connection is not open.');
     }
   };
+
+  useEffect(() => {
+    init();
+
+    return () => {
+      if (peerRef.current) {
+        peerRef.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
@@ -274,11 +284,7 @@ const VideoChat = ({ onClose }) => {
         </div>
       )}
       <div id="statusBar" className="text-center text-gray-300 mt-2">{connected ? 'connected' : 'not connected'}</div>
-      {subtitle && (
-        <div className="absolute bottom-4 w-full text-center text-white text-lg bg-gray-900 bg-opacity-50 p-2 rounded">
-          {subtitle}
-        </div>
-      )}
+      {connected && <div className="absolute bottom-4 w-full text-center text-white bg-gray-900 bg-opacity-75 p-2 rounded-md">{subtitle}</div>}
     </div>
   );
 };
