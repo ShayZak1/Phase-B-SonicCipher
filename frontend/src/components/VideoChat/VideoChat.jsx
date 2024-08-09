@@ -244,7 +244,7 @@ const VideoChat = ({ onClose }) => {
             onChange={(e) => setTargetLang(e.target.value)}
           >
             {Object.entries(languages).map(([code, name]) => (
-              <option key={code, value={code}}>{name}</option>
+              <option key={code} value={code}>{name}</option>
             ))}
           </select>
         </div>
