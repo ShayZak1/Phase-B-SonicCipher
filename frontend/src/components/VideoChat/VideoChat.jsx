@@ -2,8 +2,8 @@ import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import Peer from 'peerjs';
 import axios from 'axios';
-import { languages } from '../../LanguageData';
 import { peerConfig1 } from '../../config';
+import { languages } from '../../LanguageData';
 
 const VideoChat = ({ onClose }) => {
   const [myId, setMyId] = useState('');
@@ -53,7 +53,7 @@ const VideoChat = ({ onClose }) => {
         });
       });
 
-      startRecording(localStream);
+      startRecording(localStream); // Start recording automatically
 
     } catch (error) {
       console.error('Error accessing media devices.', error);
@@ -99,10 +99,14 @@ const VideoChat = ({ onClose }) => {
         languageCode: sourceLang,
       });
 
-      const transcript = response.data.results
-        .map(result => result.alternatives[0].transcript)
-        .join('\n');
-      handleTranscript(transcript);
+      if (response.data.results) {
+        const transcript = response.data.results
+          .map(result => result.alternatives[0].transcript)
+          .join('\n');
+        handleTranscript(transcript);
+      } else {
+        console.error('Unexpected response format:', response.data);
+      }
     } catch (error) {
       console.error('Error transcribing audio:', error);
     }
@@ -240,7 +244,7 @@ const VideoChat = ({ onClose }) => {
             onChange={(e) => setTargetLang(e.target.value)}
           >
             {Object.entries(languages).map(([code, name]) => (
-              <option key={code} value={code}>{name}</option>
+              <option key={code, value={code}}>{name}</option>
             ))}
           </select>
         </div>
