@@ -20,7 +20,6 @@ const VideoChat = ({ onClose }) => {
   const callRef = useRef(null);
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
-
   const recognitionRef = useRef(null);
 
   const init = async () => {
@@ -47,15 +46,18 @@ const VideoChat = ({ onClose }) => {
       peer.on('connection', (connection) => {
         connRef.current = connection;
         connection.on('data', (data) => {
-          setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
+          if (data.type === 'message') {
+            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+          } else if (data.type === 'subtitle') {
+            setSubtitle(data.text);
+          }
         });
         connection.on('open', () => {
           setConnected(true);
           setRecId(connection.peer);
+          startRealTimeTranscription(); // Start transcription after connection
         });
       });
-
-      startRealTimeTranscription();
 
     } catch (error) {
       console.error('Error accessing media devices.', error);
@@ -82,7 +84,12 @@ const VideoChat = ({ onClose }) => {
     };
 
     recognition.onerror = (event) => {
-      console.error(`Error occurred in recognition: ${event.error}`);
+      if (event.error === 'no-speech' || event.error === 'network') {
+        recognition.stop();
+        recognition.start();
+      } else {
+        console.error(`Error occurred in recognition: ${event.error}`);
+      }
     };
 
     recognitionRef.current = recognition;
@@ -100,8 +107,15 @@ const VideoChat = ({ onClose }) => {
 
       const translatedText = response.data.data.translations[0].translatedText;
       setSubtitle(translatedText);
+      sendSubtitleToPeer(translatedText);
     } catch (error) {
       console.error('Error translating text:', error);
+    }
+  };
+
+  const sendSubtitleToPeer = (subtitle) => {
+    if (connRef.current && connRef.current.open) {
+      connRef.current.send({ type: 'subtitle', text: subtitle });
     }
   };
 
@@ -115,7 +129,11 @@ const VideoChat = ({ onClose }) => {
       connection.on('open', () => {
         setConnected(true);
         connection.on('data', (data) => {
-          setMessages((msgs) => [...msgs, { text: data, isMine: false }]);
+          if (data.type === 'message') {
+            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+          } else if (data.type === 'subtitle') {
+            setSubtitle(data.text);
+          }
         });
 
         const call = peerRef.current.call(recId, localStreamRef.current);
@@ -124,6 +142,8 @@ const VideoChat = ({ onClose }) => {
         call.on('stream', (remoteStream) => {
           remoteVideoRef.current.srcObject = remoteStream;
         });
+
+        startRealTimeTranscription(); // Start transcription after connection
       });
 
       connection.on('error', (err) => {
@@ -164,7 +184,7 @@ const VideoChat = ({ onClose }) => {
 
     const message = chatMessageRef.current.value;
     if (connRef.current && connRef.current.open) {
-      connRef.current.send(message);
+      connRef.current.send({ type: 'message', text: message });
       setMessages((msgs) => [...msgs, { text: message, isMine: true }]);
       chatMessageRef.current.value = '';
     } else {
@@ -245,8 +265,8 @@ const VideoChat = ({ onClose }) => {
         </div>
       </form>
       <div className="flex justify-center gap-4 mt-4">
-        <video ref={localVideoRef} autoPlay muted className="w-1/2 border border-gray-600 rounded-md"></video>
-        <video ref={remoteVideoRef} autoPlay className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={localVideoRef} autoPlay muted playsInline className="w-1/2 border border-gray-600 rounded-md"></video>
+        <video ref={remoteVideoRef} autoPlay playsInline className="w-1/2 border border-gray-600 rounded-md"></video>
       </div>
       {connected && (
         <div className="mt-4">
