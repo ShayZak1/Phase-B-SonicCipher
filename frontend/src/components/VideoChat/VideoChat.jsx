@@ -21,6 +21,8 @@ const VideoChat = ({ onClose }) => {
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
 
+  const recognitionRef = useRef(null);
+
   const init = async () => {
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -53,63 +55,38 @@ const VideoChat = ({ onClose }) => {
         });
       });
 
-      startRecording(localStream); // Start recording automatically
+      startRealTimeTranscription();
 
     } catch (error) {
       console.error('Error accessing media devices.', error);
     }
   };
 
-  const startRecording = (stream) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const analyser = audioContext.createAnalyser();
-    const microphone = audioContext.createMediaStreamSource(stream);
-    const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
-
-    analyser.smoothingTimeConstant = 0.8;
-    analyser.fftSize = 2048;
-
-    microphone.connect(analyser);
-    analyser.connect(scriptProcessor);
-    scriptProcessor.connect(audioContext.destination);
-
-    scriptProcessor.onaudioprocess = async () => {
-      const array = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(array);
-
-      const audioBlob = new Blob([array.buffer], { type: 'audio/webm' });
-      const audioBase64 = await convertBlobToBase64(audioBlob);
-      transcribeAudio(audioBase64);
-    };
-  };
-
-  const convertBlobToBase64 = (blob) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
-
-  const transcribeAudio = async (audioBase64) => {
-    try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/speech-to-text`, {
-        audioBase64,
-        languageCode: sourceLang,
-      });
-
-      if (response.data.results) {
-        const transcript = response.data.results
-          .map(result => result.alternatives[0].transcript)
-          .join('\n');
-        handleTranscript(transcript);
-      } else {
-        console.error('Unexpected response format:', response.data);
-      }
-    } catch (error) {
-      console.error('Error transcribing audio:', error);
+  const startRealTimeTranscription = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      console.error('Speech recognition not supported in this browser.');
+      return;
     }
+
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = sourceLang;
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        interimTranscript += event.results[i][0].transcript;
+      }
+      handleTranscript(interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error(`Error occurred in recognition: ${event.error}`);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   const handleTranscript = async (transcript) => {
@@ -162,12 +139,24 @@ const VideoChat = ({ onClose }) => {
     if (connRef.current) connRef.current.close();
     if (peerRef.current) peerRef.current.destroy();
 
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+
+    if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
+      remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      remoteVideoRef.current.srcObject = null;
+    }
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+
     setConnected(false);
     setRecId('');
     localVideoRef.current.srcObject = null;
     remoteVideoRef.current.srcObject = null;
-
-    init();
   };
 
   const sendMessage = (e) => {
@@ -187,15 +176,13 @@ const VideoChat = ({ onClose }) => {
     init();
 
     return () => {
-      if (peerRef.current) {
-        peerRef.current.destroy();
-      }
+      disconnect();
     };
   }, []);
 
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
-      <button className="absolute top-4 right-4 text-2xl" onClick={onClose}>
+      <button className="absolute top-4 right-4 text-2xl" onClick={() => { disconnect(); onClose(); }}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
       <h1 className="text-3xl text-center py-4">Communicator</h1>
