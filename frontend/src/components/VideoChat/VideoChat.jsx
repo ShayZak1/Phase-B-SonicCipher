@@ -48,14 +48,14 @@ const VideoChat = ({ onClose }) => {
         connection.on('data', (data) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-          } else if (data.type === 'subtitle') {
-            setSubtitle(data.text);
+          } else if (data.type === 'transcript') {
+            handleTranscript(data.text, targetLang);  // Translate received transcript
           }
         });
         connection.on('open', () => {
           setConnected(true);
           setRecId(connection.peer);
-          startRealTimeTranscription(); // Start transcription after connection
+          startRealTimeTranscription(sourceLang); // Start transcription after connection
         });
       });
 
@@ -64,7 +64,7 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
-  const startRealTimeTranscription = () => {
+  const startRealTimeTranscription = (language) => {
     if (!('webkitSpeechRecognition' in window)) {
       console.error('Speech recognition not supported in this browser.');
       return;
@@ -73,14 +73,15 @@ const VideoChat = ({ onClose }) => {
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = sourceLang;
+    recognition.lang = language; // Use the dynamic source language
 
     recognition.onresult = (event) => {
       let interimTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         interimTranscript += event.results[i][0].transcript;
       }
-      handleTranscript(interimTranscript);
+      handleTranscript(interimTranscript, targetLang);  // Translate local transcript
+      sendTranscriptToPeer(interimTranscript);  // Send original transcript to peer
     };
 
     recognition.onerror = (event) => {
@@ -96,7 +97,7 @@ const VideoChat = ({ onClose }) => {
     recognition.start();
   };
 
-  const handleTranscript = async (transcript) => {
+  const handleTranscript = async (transcript, targetLang) => {
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
@@ -107,15 +108,14 @@ const VideoChat = ({ onClose }) => {
 
       const translatedText = response.data.data.translations[0].translatedText;
       setSubtitle(translatedText);
-      sendSubtitleToPeer(translatedText);
     } catch (error) {
       console.error('Error translating text:', error);
     }
   };
 
-  const sendSubtitleToPeer = (subtitle) => {
+  const sendTranscriptToPeer = (transcript) => {
     if (connRef.current && connRef.current.open) {
-      connRef.current.send({ type: 'subtitle', text: subtitle });
+      connRef.current.send({ type: 'transcript', text: transcript });
     }
   };
 
@@ -131,8 +131,8 @@ const VideoChat = ({ onClose }) => {
         connection.on('data', (data) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-          } else if (data.type === 'subtitle') {
-            setSubtitle(data.text);
+          } else if (data.type === 'transcript') {
+            handleTranscript(data.text, targetLang);  // Translate received transcript
           }
         });
 
@@ -143,7 +143,7 @@ const VideoChat = ({ onClose }) => {
           remoteVideoRef.current.srcObject = remoteStream;
         });
 
-        startRealTimeTranscription(); // Start transcription after connection
+        startRealTimeTranscription(sourceLang); // Start transcription after connection
       });
 
       connection.on('error', (err) => {
