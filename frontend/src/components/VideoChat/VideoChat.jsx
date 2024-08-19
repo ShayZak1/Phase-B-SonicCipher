@@ -45,13 +45,14 @@ const VideoChat = ({ onClose }) => {
 
       peer.on('connection', (connection) => {
         connRef.current = connection;
-        connection.on('data', (data) => {
+        connection.on('data', async (data) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
           } else if (data.type === 'transcript') {
-            handleTranscript(data.text, targetLang);  // Translate received transcript
+            await handleTranscript(data.text, targetLang);  // Translate received transcript
           }
         });
+        
         connection.on('open', () => {
           setConnected(true);
           setRecId(connection.peer);
@@ -130,23 +131,24 @@ const handleTranscript = async (transcript, targetLang) => {
 
       connection.on('open', () => {
         setConnected(true);
-        connection.on('data', (data) => {
+        connection.on('data', async (data) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
           } else if (data.type === 'transcript') {
-            handleTranscript(data.text, targetLang);  // Translate received transcript
+            await handleTranscript(data.text, targetLang);  // Translate received transcript
           }
         });
-
+      
         const call = peerRef.current.call(recId, localStreamRef.current);
         callRef.current = call;
-
+      
         call.on('stream', (remoteStream) => {
           remoteVideoRef.current.srcObject = remoteStream;
         });
-
+      
         startRealTimeTranscription(sourceLang); // Start transcription after connection
       });
+      
 
       connection.on('error', (err) => {
         console.error('Connection error:', err);
