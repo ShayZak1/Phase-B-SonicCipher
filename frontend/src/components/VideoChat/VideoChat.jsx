@@ -63,11 +63,24 @@ const VideoChat = ({ onClose }) => {
       console.error('Error accessing media devices.', error);
     }
   };
-  const sendTranscriptToPeer = (transcript) => {
-    if (connRef.current && connRef.current.open) {
-      connRef.current.send({ type: 'transcript', text: transcript });
+  const sendTranscriptToPeer = async (transcript) => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
+        q: transcript,
+        source: sourceLang,
+        target: targetLang,
+        format: 'text',
+      });
+  
+      const translatedText = response.data.data.translations[0].translatedText;
+      if (connRef.current && connRef.current.open) {
+        connRef.current.send({ type: 'transcript', text: translatedText });
+      }
+    } catch (error) {
+      console.error('Error translating and sending transcript:', error);
     }
   };
+  
   
   const startRealTimeTranscription = () => {
     if (!('webkitSpeechRecognition' in window)) {
