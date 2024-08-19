@@ -66,7 +66,6 @@ const VideoChat = ({ onClose }) => {
   const sendTranscriptToPeer = async (transcript) => {
     console.log(`Sending transcript: ${transcript}`);
     console.log(`Using source language: ${sourceLang} and target language: ${targetLang}`);
-  
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
@@ -77,15 +76,10 @@ const VideoChat = ({ onClose }) => {
   
       const translatedText = response.data.data.translations[0].translatedText;
       console.log(`Translated text: ${translatedText}`);
-  
-      // Send the original transcript (not translated) to the peer for them to handle
+
       if (connRef.current && connRef.current.open) {
-        connRef.current.send({ type: 'transcript', text: transcript });
+        connRef.current.send({ type: 'transcript', text: translatedText });
       }
-  
-      // Display the translated text locally only if the user wants to see their translation
-      setSubtitle(translatedText);
-  
     } catch (error) {
       console.error('Error translating and sending transcript:', error);
     }
@@ -130,25 +124,22 @@ const VideoChat = ({ onClose }) => {
 const handleTranscript = async (transcript, targetLang) => {
   console.log(`Handling transcript: ${transcript}`);
   console.log(`Translating using source language: ${sourceLang} and target language: ${targetLang}`);
-
   try {
-    const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
-      q: transcript,
-      source: sourceLang,
-      target: targetLang,
-      format: 'text',
-    });
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
+          q: transcript,
+          source: sourceLang,
+          target: targetLang,
+          format: 'text',
+      });
 
-    const translatedText = response.data.data.translations[0].translatedText;
-    console.log(`Translated text: ${translatedText}`);
-    
-    setSubtitle(translatedText);
+      const translatedText = response.data.data.translations[0].translatedText;
+      console.log(`Translated text: ${translatedText}`);
 
+      setSubtitle(translatedText);
   } catch (error) {
-    console.error('Error translating text:', error);
+      console.error('Error translating text:', error);
   }
 };
-
 
 
   const connect = (e) => {
