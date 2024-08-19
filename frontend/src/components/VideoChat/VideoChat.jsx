@@ -64,60 +64,57 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
-  const startRealTimeTranscription = (language) => {
+  const startRealTimeTranscription = () => {
     if (!('webkitSpeechRecognition' in window)) {
-      console.error('Speech recognition not supported in this browser.');
-      return;
+        console.error('Speech recognition not supported in this browser.');
+        return;
     }
 
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = language; // Use the dynamic source language
+    recognition.lang = sourceLang; // Use the dynamic source language
 
     recognition.onresult = (event) => {
-      let interimTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        interimTranscript += event.results[i][0].transcript;
-      }
-      handleTranscript(interimTranscript, targetLang);  // Translate local transcript
-      sendTranscriptToPeer(interimTranscript);  // Send original transcript to peer
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            interimTranscript += event.results[i][0].transcript;
+        }
+
+        // Only send the transcript to the peer; don't translate locally
+        sendTranscriptToPeer(interimTranscript);
     };
 
     recognition.onerror = (event) => {
-      if (event.error === 'no-speech' || event.error === 'network') {
-        recognition.stop();
-        recognition.start();
-      } else {
-        console.error(`Error occurred in recognition: ${event.error}`);
-      }
+        if (event.error === 'no-speech' || event.error === 'network') {
+            recognition.stop();
+            recognition.start();
+        } else {
+            console.error(`Error occurred in recognition: ${event.error}`);
+        }
     };
 
     recognitionRef.current = recognition;
     recognition.start();
-  };
+};
 
-  const handleTranscript = async (transcript, targetLang) => {
-    try {
+
+const handleTranscript = async (transcript, targetLang) => {
+  try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
-        q: transcript,
-        source: sourceLang,
-        target: targetLang,
-        format: 'text',
+          q: transcript,
+          source: sourceLang,
+          target: targetLang,
+          format: 'text',
       });
 
       const translatedText = response.data.data.translations[0].translatedText;
       setSubtitle(translatedText);
-    } catch (error) {
+  } catch (error) {
       console.error('Error translating text:', error);
-    }
-  };
+  }
+};
 
-  const sendTranscriptToPeer = (transcript) => {
-    if (connRef.current && connRef.current.open) {
-      connRef.current.send({ type: 'transcript', text: transcript });
-    }
-  };
 
   const connect = (e) => {
     e.preventDefault();
@@ -160,24 +157,25 @@ const VideoChat = ({ onClose }) => {
     if (peerRef.current) peerRef.current.destroy();
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
     }
 
     if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
-      remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      remoteVideoRef.current.srcObject = null;
+        remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideoRef.current.srcObject = null;
     }
 
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+        recognitionRef.current.stop();
     }
 
     setConnected(false);
     setRecId('');
     localVideoRef.current.srcObject = null;
     remoteVideoRef.current.srcObject = null;
-  };
+};
+
 
   const sendMessage = (e) => {
     e.preventDefault();
