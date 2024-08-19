@@ -63,7 +63,12 @@ const VideoChat = ({ onClose }) => {
       console.error('Error accessing media devices.', error);
     }
   };
-
+  const sendTranscriptToPeer = (transcript) => {
+    if (connRef.current && connRef.current.open) {
+      connRef.current.send({ type: 'transcript', text: transcript });
+    }
+  };
+  
   const startRealTimeTranscription = () => {
     if (!('webkitSpeechRecognition' in window)) {
         console.error('Speech recognition not supported in this browser.');
