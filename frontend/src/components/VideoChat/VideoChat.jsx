@@ -66,6 +66,7 @@ const VideoChat = ({ onClose }) => {
   const sendTranscriptToPeer = async (transcript) => {
     console.log(`Sending transcript: ${transcript}`);
     console.log(`Using source language: ${sourceLang} and target language: ${targetLang}`);
+  
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
@@ -76,14 +77,19 @@ const VideoChat = ({ onClose }) => {
   
       const translatedText = response.data.data.translations[0].translatedText;
       console.log(`Translated text: ${translatedText}`);
-
+  
+      // Send the original transcript (not translated) to the peer for them to handle
       if (connRef.current && connRef.current.open) {
-        connRef.current.send({ type: 'transcript', text: translatedText });
+        connRef.current.send({ type: 'transcript', text: transcript });
       }
+  
+
+  
     } catch (error) {
       console.error('Error translating and sending transcript:', error);
     }
   };
+  
   
   
   const startRealTimeTranscription = () => {
@@ -124,58 +130,64 @@ const VideoChat = ({ onClose }) => {
 const handleTranscript = async (transcript, targetLang) => {
   console.log(`Handling transcript: ${transcript}`);
   console.log(`Translating using source language: ${sourceLang} and target language: ${targetLang}`);
+
   try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
-          q: transcript,
-          source: sourceLang,
-          target: targetLang,
-          format: 'text',
-      });
+    const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
+      q: transcript,
+      source: sourceLang,
+      target: targetLang,
+      format: 'text',
+    });
 
-      const translatedText = response.data.data.translations[0].translatedText;
-      console.log(`Translated text: ${translatedText}`);
+    const translatedText = response.data.data.translations[0].translatedText;
+    console.log(`Translated text: ${translatedText}`);
+    
+    setSubtitle(translatedText);
 
-      setSubtitle(translatedText);
   } catch (error) {
-      console.error('Error translating text:', error);
+    console.error('Error translating text:', error);
   }
 };
 
 
-  const connect = (e) => {
-    e.preventDefault();
 
-    if (!connected) {
-      const connection = peerRef.current.connect(recId);
-      connRef.current = connection;
+const connect = (e) => {
+  e.preventDefault();
 
-      connection.on('open', () => {
-        setConnected(true);
-        connection.on('data', (data) => {
-          if (data.type === 'message') {
-            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-          } else if (data.type === 'transcript') {
-            handleTranscript(data.text, targetLang);  // Translate received transcript
-          }
-        });
+  if (!connected) {
+    const connection = peerRef.current.connect(recId);
+    connRef.current = connection;
 
-        const call = peerRef.current.call(recId, localStreamRef.current);
-        callRef.current = call;
-
-        call.on('stream', (remoteStream) => {
-          remoteVideoRef.current.srcObject = remoteStream;
-        });
-
-        startRealTimeTranscription(sourceLang); // Start transcription after connection
+    connection.on('open', () => {
+      setConnected(true);
+      connection.on('data', (data) => {
+        if (data.type === 'message') {
+          setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+        } else if (data.type === 'transcript') {
+          // Handle the received transcript with the local user's target language
+          handleTranscript(data.text, targetLang);
+        }
       });
 
-      connection.on('error', (err) => {
-        console.error('Connection error:', err);
+      const call = peerRef.current.call(recId, localStreamRef.current);
+      callRef.current = call;
+
+      call.on('stream', (remoteStream) => {
+        remoteVideoRef.current.srcObject = remoteStream;
       });
-    } else {
-      disconnect();
-    }
-  };
+
+      // Start transcription using the local user's source language
+      startRealTimeTranscription(sourceLang);
+    });
+
+    connection.on('error', (err) => {
+      console.error('Connection error:', err);
+    });
+  } else {
+    disconnect();
+  }
+};
+
 
   const disconnect = () => {
     if (callRef.current) callRef.current.close();
