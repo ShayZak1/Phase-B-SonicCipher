@@ -6,7 +6,7 @@ import Sonicintro from "./components/Sonicintro";
 import NavBar from "./components/NavBar";
 import TranslatorApp from "./components/Translator/TranslatorApp";
 import videoFile from './assets/img/TranslateBg.mp4';
-import VideoChat from './components/VideoChat/VideoChat";
+import VideoChat from './components/VideoChat/VideoChat';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('/');
