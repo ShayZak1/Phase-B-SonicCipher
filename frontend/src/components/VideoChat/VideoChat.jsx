@@ -141,7 +141,7 @@ const VideoChat = ({ onClose }) => {
     if (!connected) {
       const connection = peerRef.current.connect(recId);
       connRef.current = connection;
-
+      console.log('hello');
       connection.on('open', () => {
         setConnected(true);
         connection.on('data', (data) => {
