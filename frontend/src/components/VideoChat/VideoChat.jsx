@@ -45,6 +45,7 @@ const VideoChat = ({ onClose }) => {
 
       peer.on('connection', (connection) => {
         connRef.current = connection;
+        console.log("Receiving call but i didnt press connect");
         connection.on('data', (data) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
