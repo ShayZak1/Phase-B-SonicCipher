@@ -21,7 +21,19 @@ const VideoChat = ({ onClose }) => {
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
   const recognitionRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(false);
 
+
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  
   const init = async () => {
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -210,6 +222,10 @@ const VideoChat = ({ onClose }) => {
       <button className="absolute top-4 right-4 text-2xl" onClick={() => { disconnect(); onClose(); }}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
+      <button className="absolute top-4 right-12 text-2xl" onClick={toggleMute}>
+       <i className={`fa-solid ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} text-white`}></i>
+        </button>
+
       <h1 className="text-3xl text-center py-4">Communicator</h1>
       <form onSubmit={connect}>
         <div className="mb-4">
