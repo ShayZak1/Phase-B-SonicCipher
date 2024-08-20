@@ -64,31 +64,26 @@ const VideoChat = ({ onClose }) => {
     }
   };
   const sendTranscriptToPeer = async (transcript) => {
-    console.log(`Sending transcript: ${transcript}`);
-    console.log(`Using source language: ${sourceLang} and target language: ${targetLang}`);
-  
+    console.log(Sending transcript: ${transcript});
+    console.log(Using source language: ${sourceLang} and target language: ${targetLang});
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
+      const response = await axios.post(${process.env.REACT_APP_BACKEND_URL}/translate, {
         q: transcript,
-        source: sourceLang, // Local user's source language
-        target: targetLang, // Local user's target language
+        source: sourceLang,
+        target: targetLang,
         format: 'text',
       });
   
       const translatedText = response.data.data.translations[0].translatedText;
-      console.log(`Translated text: ${translatedText}`);
-  
-      // Send the original transcript (not translated) to the peer for them to handle
+      console.log(Translated text: ${translatedText});
+
       if (connRef.current && connRef.current.open) {
-        connRef.current.send({ type: 'transcript', text: transcript });
+        connRef.current.send({ type: 'transcript', text: translatedText });
       }
-  
     } catch (error) {
       console.error('Error translating and sending transcript:', error);
     }
   };
-  
-  
   
   
   const startRealTimeTranscription = () => {
@@ -117,7 +112,7 @@ const VideoChat = ({ onClose }) => {
             recognition.stop();
             recognition.start();
         } else {
-            console.error(`Error occurred in recognition: ${event.error}`);
+            console.error(Error occurred in recognition: ${event.error});
         }
     };
 
@@ -127,69 +122,60 @@ const VideoChat = ({ onClose }) => {
 
 
 const handleTranscript = async (transcript, targetLang) => {
-  console.log(`Handling transcript: ${transcript}`);
-  console.log(`Translating using target language: ${targetLang}`);
-
+  console.log(Handling transcript: ${transcript});
+  console.log(Translating using source language: ${sourceLang} and target language: ${targetLang});
   try {
-    const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
-      q: transcript,
-      source: sourceLang, // Assuming sourceLang is relevant here for the receiving user
-      target: targetLang, // The receiving user's target language
-      format: 'text',
-    });
+      const response = await axios.post(${process.env.REACT_APP_BACKEND_URL}/translate, {
+          q: transcript,
+          source: sourceLang,
+          target: targetLang,
+          format: 'text',
+      });
 
-    const translatedText = response.data.data.translations[0].translatedText;
-    console.log(`Translated text: ${translatedText}`);
-    
-    setSubtitle(translatedText);
+      const translatedText = response.data.data.translations[0].translatedText;
+      console.log(Translated text: ${translatedText});
 
+      setSubtitle(translatedText);
   } catch (error) {
-    console.error('Error translating text:', error);
+      console.error('Error translating text:', error);
   }
 };
 
 
+  const connect = (e) => {
+    e.preventDefault();
 
+    if (!connected) {
+      const connection = peerRef.current.connect(recId);
+      connRef.current = connection;
 
-const connect = (e) => {
-  e.preventDefault();
+      connection.on('open', () => {
+        setConnected(true);
+        connection.on('data', (data) => {
+          if (data.type === 'message') {
+            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+          } else if (data.type === 'transcript') {
+            handleTranscript(data.text, targetLang);  // Translate received transcript
+          }
+        });
 
-  if (!connected) {
-    const connection = peerRef.current.connect(recId);
-    connRef.current = connection;
+        const call = peerRef.current.call(recId, localStreamRef.current);
+        callRef.current = call;
 
-    connection.on('open', () => {
-      setConnected(true);
-      connection.on('data', async (data) => {
-        if (data.type === 'message') {
-          setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-        } else if (data.type === 'transcript') {
-          // Handle the received transcript with the local user's target language
-          console.log('Received transcript:', data.text);
-          await handleTranscript(data.text, targetLang);
-        }
+        call.on('stream', (remoteStream) => {
+          remoteVideoRef.current.srcObject = remoteStream;
+        });
+
+        startRealTimeTranscription(sourceLang); // Start transcription after connection
       });
 
-      const call = peerRef.current.call(recId, localStreamRef.current);
-      callRef.current = call;
-
-      call.on('stream', (remoteStream) => {
-        remoteVideoRef.current.srcObject = remoteStream;
+      connection.on('error', (err) => {
+        console.error('Connection error:', err);
       });
-
-      // Start transcription using the local user's source language
-      startRealTimeTranscription(sourceLang);
-    });
-
-    connection.on('error', (err) => {
-      console.error('Connection error:', err);
-    });
-  } else {
-    disconnect();
-  }
-};
-
-
+    } else {
+      disconnect();
+    }
+  };
 
   const disconnect = () => {
     if (callRef.current) callRef.current.close();
@@ -296,7 +282,7 @@ const connect = (e) => {
         <div className="py-2">
           <button
             type="submit"
-            className={`w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${connected ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+            className={w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${connected ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}}
           >
             {connected ? 'Disconnect' : 'Connect'}
           </button>
@@ -310,7 +296,7 @@ const connect = (e) => {
         <div className="mt-4">
           <div className="mb-4 bg-gray-700 p-4 rounded-md overflow-y-auto h-32">
             {messages.map((msg, index) => (
-              <div key={index} className={`${msg.isMine ? 'text-right text-blue-400' : 'text-left text-gray-400'}`}>
+              <div key={index} className={${msg.isMine ? 'text-right text-blue-400' : 'text-left text-gray-400'}}>
                 {msg.text}
               </div>
             ))}
@@ -338,4 +324,4 @@ const connect = (e) => {
   );
 };
 
-export default VideoChat;
+export default VideoChat;
