@@ -77,48 +77,58 @@ const VideoChat = ({ onClose }) => {
   
       const translatedText = response.data.data.translations[0].translatedText;
       console.log(`Translated text: ${translatedText}`);
-
+  
       if (connRef.current && connRef.current.open) {
         connRef.current.send({ type: 'transcript', text: translatedText });
       }
     } catch (error) {
       console.error('Error translating and sending transcript:', error);
+      if (error.code === 'ERR_NETWORK' || error.response?.status === 504) {
+        // Optionally retry or inform the user about the network issue
+        console.log('Network error occurred, please try again later.');
+      }
     }
   };
+  
   
   const startRealTimeTranscription = () => {
     if (!('webkitSpeechRecognition' in window)) {
         console.error('Speech recognition not supported in this browser.');
         return;
     }
-
+  
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = sourceLang; // Use the dynamic source language
-
+  
     recognition.onresult = (event) => {
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             interimTranscript += event.results[i][0].transcript;
         }
-
+  
         // Only send the transcript to the peer; don't translate locally
         sendTranscriptToPeer(interimTranscript);
     };
-
+  
     recognition.onerror = (event) => {
+        console.error(`Error occurred in recognition: ${event.error}`);
         if (event.error === 'no-speech' || event.error === 'network') {
+            // If no speech is detected or there is a network error, restart the recognition
             recognition.stop();
-            recognition.start();
+            setTimeout(() => {
+                recognition.start();
+            }, 1000); // Restart recognition after a short delay
         } else {
-            console.error(`Error occurred in recognition: ${event.error}`);
+            console.error(`Unhandled error: ${event.error}`);
         }
     };
-
+  
     recognitionRef.current = recognition;
     recognition.start();
-};
+  };
+  
 
 const handleTranscript = async (transcript, targetLang) => {
   console.log(`Handling transcript: ${transcript}`);
