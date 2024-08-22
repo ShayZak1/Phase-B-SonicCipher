@@ -13,7 +13,7 @@ const VideoChat = ({ onClose }) => {
   const [subtitle, setSubtitle] = useState('');
   const [sourceLang, setSourceLang] = useState('en-GB');
   const [targetLang, setTargetLang] = useState('he-IL');
-  
+  const [languageChangeCounter, setLanguageChangeCounter] = useState(0); // Counter to track changes
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
@@ -22,15 +22,20 @@ const VideoChat = ({ onClose }) => {
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
   const recognitionRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(false);
 
-  const sourceLangRef = useRef(sourceLang);
-  const targetLangRef = useRef(targetLang);
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
 
   useEffect(() => {
-    sourceLangRef.current = sourceLang;
-    targetLangRef.current = targetLang;
-    console.log(`Initial sourceLang: ${sourceLangRef.current}, targetLang: ${targetLangRef.current}`);
-  }, [sourceLang, targetLang]);
+    console.log(`Language change count: ${languageChangeCounter}`);
+  }, [languageChangeCounter]);
 
   const init = async () => {
     try {
@@ -43,7 +48,6 @@ const VideoChat = ({ onClose }) => {
 
       peer.on('open', (id) => {
         setMyId(id);
-        console.log(`Peer created with ID: ${id}`);
       });
 
       peer.on('call', (incomingCall) => {
@@ -56,34 +60,22 @@ const VideoChat = ({ onClose }) => {
 
       peer.on('connection', (connection) => {
         connRef.current = connection;
-        console.log('Peer 1 connected');
         connection.on('data', (data) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
           } else if (data.type === 'transcript') {
-            console.log(`Transcript received: ${data.text}`);
             setSubtitle(data.text);
           }
         });
         connection.on('open', () => {
-          console.log('Peer 1 connected');
           setConnected(true);
           setRecId(connection.peer);
-      
-          // Ensure the latest languages are set before starting transcription
-          setSourceLang(sourceLang);
-          setTargetLang(targetLang);
-      
-          console.log(`Peer 1 language settings after connection:`);
-          console.log(`Source Language: ${sourceLang}`);
-          console.log(`Target Language: ${targetLang}`);
-      
-          // Delay starting transcription slightly to ensure state updates are applied
-          setTimeout(() => {
-              startRealTimeTranscription(); // Start transcription after connection
-          }, 100); 
-      });
-      
+
+          // Log the counter value after connection
+          console.log(`Counter after connection open: ${languageChangeCounter}`);
+
+          startRealTimeTranscription(); // Start transcription after connection
+        });
       });
 
     } catch (error) {
@@ -93,13 +85,13 @@ const VideoChat = ({ onClose }) => {
 
   const sendTranscriptToPeer = async (transcript) => {
     console.log(`Sending transcript: ${transcript}`);
-    console.log(`Using source language: ${sourceLangRef.current} and target language: ${targetLangRef.current}`);
+    console.log(`Using source language: ${sourceLang} and target language: ${targetLang}`);
 
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
-        source: sourceLangRef.current,
-        target: targetLangRef.current,
+        source: sourceLang,
+        target: targetLang,
         format: 'text',
       });
 
@@ -114,86 +106,77 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
-  const startRealTimeTranscription = (language) => {
+  const startRealTimeTranscription = () => {
     if (!('webkitSpeechRecognition' in window)) {
-        console.error('Speech recognition not supported in this browser.');
-        return;
+      console.error('Speech recognition not supported in this browser.');
+      return;
     }
 
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = language; // Use the passed source language
+    recognition.lang = sourceLang;
 
     recognition.onresult = (event) => {
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            interimTranscript += event.results[i][0].transcript;
-        }
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        interimTranscript += event.results[i][0].transcript;
+      }
 
-        // Translate the transcript and send it to the peer
-        sendTranscriptToPeer(interimTranscript);
+      sendTranscriptToPeer(interimTranscript);
     };
 
     recognition.onerror = (event) => {
-        if (event.error === 'no-speech' || event.error === 'network') {
-            recognition.stop();
-            recognition.start();
-        } else {
-            console.error(`Error occurred in recognition: ${event.error}`);
-        }
+      if (event.error === 'no-speech' || event.error === 'network') {
+        recognition.stop();
+        recognition.start();
+      } else {
+        console.error(`Error occurred in recognition: ${event.error}`);
+      }
     };
 
     recognitionRef.current = recognition;
     recognition.start();
-    console.log(`Starting real-time transcription with source language: ${language}`);
-};
+    console.log(`Starting real-time transcription with source language: ${sourceLang}`);
+  };
 
   const connect = (e) => {
     e.preventDefault();
 
     if (!connected) {
-        const connection = peerRef.current.connect(recId);
-        connRef.current = connection;
-        console.log('hello');
-
-        connection.on('open', () => {
-            setConnected(true);
-
-            // Set the latest language settings
-            const currentSourceLang = sourceLang; // Get the latest source language
-            const currentTargetLang = targetLang; // Get the latest target language
-
-            console.log(`Source Language set to: ${currentSourceLang}`);
-            console.log(`Target Language set to: ${currentTargetLang}`);
-
-            connection.on('data', (data) => {
-                if (data.type === 'message') {
-                    setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-                } else if (data.type === 'transcript') {
-                    // Display the translated text received from the peer
-                    setSubtitle(data.text);
-                }
-            });
-
-            const call = peerRef.current.call(recId, localStreamRef.current);
-            callRef.current = call;
-
-            call.on('stream', (remoteStream) => {
-                remoteVideoRef.current.srcObject = remoteStream;
-            });
-
-            // Start real-time transcription with the correct language settings
-            startRealTimeTranscription(currentSourceLang); 
+      const connection = peerRef.current.connect(recId);
+      connRef.current = connection;
+      console.log('hello');
+      connection.on('open', () => {
+        setConnected(true);
+        connection.on('data', (data) => {
+          if (data.type === 'message') {
+            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+          } else if (data.type === 'transcript') {
+            setSubtitle(data.text);
+          }
         });
 
-        connection.on('error', (err) => {
-            console.error('Connection error:', err);
+        const call = peerRef.current.call(recId, localStreamRef.current);
+        callRef.current = call;
+
+        call.on('stream', (remoteStream) => {
+          remoteVideoRef.current.srcObject = remoteStream;
         });
+
+        // Log the counter value before starting transcription
+        console.log(`Counter before starting transcription: ${languageChangeCounter}`);
+
+        startRealTimeTranscription(); // Start transcription after connection
+      });
+
+      connection.on('error', (err) => {
+        console.error('Connection error:', err);
+      });
     } else {
-        disconnect();
+      disconnect();
     }
-};
+  };
 
   const disconnect = () => {
     if (callRef.current) callRef.current.close();
@@ -241,11 +224,20 @@ const VideoChat = ({ onClose }) => {
     };
   }, []);
 
+  useEffect(() => {
+    console.log(`Source Language set to: ${sourceLang}`);
+    console.log(`Target Language set to: ${targetLang}`);
+    setLanguageChangeCounter(prevCounter => prevCounter + 1);
+  }, [sourceLang, targetLang]);
+
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={() => { disconnect(); onClose(); }}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
+      <button className="absolute top-4 right-12 text-2xl" onClick={toggleMute}>
+       <i className={`fa-solid ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} text-white`}></i>
+        </button>
 
       <h1 className="text-3xl text-center py-4">Communicator</h1>
       <form onSubmit={connect}>
@@ -277,11 +269,7 @@ const VideoChat = ({ onClose }) => {
             id="sourceLang"
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
             value={sourceLang}
-            onChange={(e) => {
-              setSourceLang(e.target.value);
-              sourceLangRef.current = e.target.value;
-              console.log(`Source Language set to: ${sourceLangRef.current}`);
-            }}
+            onChange={(e) => setSourceLang(e.target.value)}
           >
             {Object.entries(languages).map(([code, name]) => (
               <option key={code} value={code}>{name}</option>
@@ -294,11 +282,7 @@ const VideoChat = ({ onClose }) => {
             id="targetLang"
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
             value={targetLang}
-            onChange={(e) => {
-              setTargetLang(e.target.value);
-              targetLangRef.current = e.target.value;
-              console.log(`Target Language set to: ${targetLangRef.current}`);
-            }}
+            onChange={(e) => setTargetLang(e.target.value)}
           >
             {Object.entries(languages).map(([code, name]) => (
               <option key={code} value={code}>{name}</option>
