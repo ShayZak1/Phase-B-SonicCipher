@@ -66,20 +66,24 @@ const VideoChat = ({ onClose }) => {
           }
         });
         connection.on('open', () => {
+          console.log('Peer 1 connected');
           setConnected(true);
           setRecId(connection.peer);
-          
-          // Update and log languages
-          sourceLangRef.current = sourceLang;
-          targetLangRef.current = targetLang;
-          
+      
+          // Ensure the latest languages are set before starting transcription
+          setSourceLang(sourceLang);
+          setTargetLang(targetLang);
+      
           console.log(`Peer 1 language settings after connection:`);
-          console.log(`Source Language: ${sourceLangRef.current}`);
-          console.log(`Target Language: ${targetLangRef.current}`);
-
-          startRealTimeTranscription(); // Start transcription after connection
-        });
+          console.log(`Source Language: ${sourceLang}`);
+          console.log(`Target Language: ${targetLang}`);
+      
+          // Delay starting transcription slightly to ensure state updates are applied
+          setTimeout(() => {
+              startRealTimeTranscription(); // Start transcription after connection
+          }, 100); 
       });
+      
 
     } catch (error) {
       console.error('Error accessing media devices.', error);
