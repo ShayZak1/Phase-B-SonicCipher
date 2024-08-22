@@ -22,11 +22,16 @@ const VideoChat = ({ onClose }) => {
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
   const recognitionRef = useRef(null);
-  
-  // Store languages in refs to ensure consistency
+
   const sourceLangRef = useRef(sourceLang);
   const targetLangRef = useRef(targetLang);
-  
+
+  useEffect(() => {
+    sourceLangRef.current = sourceLang;
+    targetLangRef.current = targetLang;
+    console.log(`Initial sourceLang: ${sourceLangRef.current}, targetLang: ${targetLangRef.current}`);
+  }, [sourceLang, targetLang]);
+
   const init = async () => {
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -38,6 +43,7 @@ const VideoChat = ({ onClose }) => {
 
       peer.on('open', (id) => {
         setMyId(id);
+        console.log(`Peer created with ID: ${id}`);
       });
 
       peer.on('call', (incomingCall) => {
@@ -50,23 +56,23 @@ const VideoChat = ({ onClose }) => {
 
       peer.on('connection', (connection) => {
         connRef.current = connection;
-
+        console.log('Peer 1 connected');
         connection.on('data', (data) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
           } else if (data.type === 'transcript') {
+            console.log(`Transcript received: ${data.text}`);
             setSubtitle(data.text);
           }
         });
-
         connection.on('open', () => {
           setConnected(true);
           setRecId(connection.peer);
           
-          // Update refs with the latest selected languages
+          // Update and log languages
           sourceLangRef.current = sourceLang;
           targetLangRef.current = targetLang;
-
+          
           console.log(`Peer 1 language settings after connection:`);
           console.log(`Source Language: ${sourceLangRef.current}`);
           console.log(`Target Language: ${targetLangRef.current}`);
@@ -74,6 +80,7 @@ const VideoChat = ({ onClose }) => {
           startRealTimeTranscription(); // Start transcription after connection
         });
       });
+
     } catch (error) {
       console.error('Error accessing media devices.', error);
     }
@@ -112,6 +119,7 @@ const VideoChat = ({ onClose }) => {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = sourceLangRef.current; // Use the source language ref
+    console.log(`Starting real-time transcription with source language: ${recognition.lang}`);
 
     recognition.onresult = (event) => {
       let interimTranscript = '';
@@ -119,6 +127,7 @@ const VideoChat = ({ onClose }) => {
         interimTranscript += event.results[i][0].transcript;
       }
 
+      console.log(`Interim transcript: ${interimTranscript}`);
       sendTranscriptToPeer(interimTranscript);
     };
 
@@ -146,9 +155,7 @@ const VideoChat = ({ onClose }) => {
         setConnected(true);
         setRecId(connection.peer);
 
-        sourceLangRef.current = sourceLang;
-        targetLangRef.current = targetLang;
-
+        // Log languages when Peer 2 connects
         console.log(`Peer 2 language settings on connect:`);
         console.log(`Source Language: ${sourceLangRef.current}`);
         console.log(`Target Language: ${targetLangRef.current}`);
@@ -160,6 +167,7 @@ const VideoChat = ({ onClose }) => {
         if (data.type === 'message') {
           setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
         } else if (data.type === 'transcript') {
+          console.log(`Transcript received: ${data.text}`);
           setSubtitle(data.text);
         }
       });
@@ -261,6 +269,7 @@ const VideoChat = ({ onClose }) => {
             onChange={(e) => {
               setSourceLang(e.target.value);
               sourceLangRef.current = e.target.value;
+              console.log(`Source Language set to: ${sourceLangRef.current}`);
             }}
           >
             {Object.entries(languages).map(([code, name]) => (
@@ -277,6 +286,7 @@ const VideoChat = ({ onClose }) => {
             onChange={(e) => {
               setTargetLang(e.target.value);
               targetLangRef.current = e.target.value;
+              console.log(`Target Language set to: ${targetLangRef.current}`);
             }}
           >
             {Object.entries(languages).map(([code, name]) => (
