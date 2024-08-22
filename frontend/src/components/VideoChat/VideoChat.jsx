@@ -5,15 +5,17 @@ import axios from 'axios';
 import { peerConfig1 } from '../../config';
 import { languages } from '../../LanguageData';
 
+// Global variables to store language settings
+let globalSourceLang = 'en-GB';
+let globalTargetLang = 'he-IL';
+let globalChangeCount = 0;
+
 const VideoChat = ({ onClose }) => {
   const [myId, setMyId] = useState('');
   const [recId, setRecId] = useState('');
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState([]);
   const [subtitle, setSubtitle] = useState('');
-  const [sourceLang, setSourceLang] = useState('en-GB');
-  const [targetLang, setTargetLang] = useState('he-IL');
-  const [languageChangeCounter, setLanguageChangeCounter] = useState(0); // Counter to track changes
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
@@ -33,9 +35,19 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
+  // Function to handle language change
+  const handleLanguageChange = (source, target) => {
+    globalSourceLang = source;
+    globalTargetLang = target;
+    globalChangeCount += 1;
+    console.log(`Language change count: ${globalChangeCount}`);
+    console.log(`Source Language set to: ${globalSourceLang}`);
+    console.log(`Target Language set to: ${globalTargetLang}`);
+  };
+
   useEffect(() => {
-    console.log(`Language change count: ${languageChangeCounter}`);
-  }, [languageChangeCounter]);
+    console.log(`Initial sourceLang: ${globalSourceLang}, targetLang: ${globalTargetLang}`);
+  }, []);
 
   const init = async () => {
     try {
@@ -64,16 +76,16 @@ const VideoChat = ({ onClose }) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
           } else if (data.type === 'transcript') {
+            // Directly set the subtitle with the translated text received from the peer
             setSubtitle(data.text);
           }
         });
         connection.on('open', () => {
           setConnected(true);
           setRecId(connection.peer);
-
-          // Log the counter value after connection
-          console.log(`Counter after connection open: ${languageChangeCounter}`);
-
+          console.log(`Peer 1 language settings after connection:`);
+          console.log(`Source Language: ${globalSourceLang}`);
+          console.log(`Target Language: ${globalTargetLang}`);
           startRealTimeTranscription(); // Start transcription after connection
         });
       });
@@ -85,19 +97,20 @@ const VideoChat = ({ onClose }) => {
 
   const sendTranscriptToPeer = async (transcript) => {
     console.log(`Sending transcript: ${transcript}`);
-    console.log(`Using source language: ${sourceLang} and target language: ${targetLang}`);
+    console.log(`Using source language: ${globalSourceLang} and target language: ${globalTargetLang}`);
 
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
-        source: sourceLang,
-        target: targetLang,
+        source: globalSourceLang,
+        target: globalTargetLang,
         format: 'text',
       });
 
       const translatedText = response.data.data.translations[0].translatedText;
       console.log(`Translated text: ${translatedText}`);
 
+      // Send the translated text to the peer
       if (connRef.current && connRef.current.open) {
         connRef.current.send({ type: 'transcript', text: translatedText });
       }
@@ -115,7 +128,7 @@ const VideoChat = ({ onClose }) => {
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = sourceLang;
+    recognition.lang = globalSourceLang; // Use the global source language
 
     recognition.onresult = (event) => {
       let interimTranscript = '';
@@ -123,6 +136,7 @@ const VideoChat = ({ onClose }) => {
         interimTranscript += event.results[i][0].transcript;
       }
 
+      // Translate the transcript and send it to the peer
       sendTranscriptToPeer(interimTranscript);
     };
 
@@ -137,7 +151,7 @@ const VideoChat = ({ onClose }) => {
 
     recognitionRef.current = recognition;
     recognition.start();
-    console.log(`Starting real-time transcription with source language: ${sourceLang}`);
+    console.log(`Starting real-time transcription with source language: ${recognition.lang}`);
   };
 
   const connect = (e) => {
@@ -153,6 +167,7 @@ const VideoChat = ({ onClose }) => {
           if (data.type === 'message') {
             setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
           } else if (data.type === 'transcript') {
+            // Display the translated text received from the peer
             setSubtitle(data.text);
           }
         });
@@ -163,9 +178,6 @@ const VideoChat = ({ onClose }) => {
         call.on('stream', (remoteStream) => {
           remoteVideoRef.current.srcObject = remoteStream;
         });
-
-        // Log the counter value before starting transcription
-        console.log(`Counter before starting transcription: ${languageChangeCounter}`);
 
         startRealTimeTranscription(); // Start transcription after connection
       });
@@ -224,12 +236,6 @@ const VideoChat = ({ onClose }) => {
     };
   }, []);
 
-  useEffect(() => {
-    console.log(`Source Language set to: ${sourceLang}`);
-    console.log(`Target Language set to: ${targetLang}`);
-    setLanguageChangeCounter(prevCounter => prevCounter + 1);
-  }, [sourceLang, targetLang]);
-
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={() => { disconnect(); onClose(); }}>
@@ -268,8 +274,8 @@ const VideoChat = ({ onClose }) => {
           <select
             id="sourceLang"
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
-            value={sourceLang}
-            onChange={(e) => setSourceLang(e.target.value)}
+            value={globalSourceLang}
+            onChange={(e) => handleLanguageChange(e.target.value, globalTargetLang)}
           >
             {Object.entries(languages).map(([code, name]) => (
               <option key={code} value={code}>{name}</option>
@@ -281,8 +287,8 @@ const VideoChat = ({ onClose }) => {
           <select
             id="targetLang"
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
-            value={targetLang}
-            onChange={(e) => setTargetLang(e.target.value)}
+            value={globalTargetLang}
+            onChange={(e) => handleLanguageChange(globalSourceLang, e.target.value)}
           >
             {Object.entries(languages).map(([code, name]) => (
               <option key={code} value={code}>{name}</option>
