@@ -84,6 +84,7 @@ const VideoChat = ({ onClose }) => {
           }, 100); 
       });
       
+      });
 
     } catch (error) {
       console.error('Error accessing media devices.', error);
