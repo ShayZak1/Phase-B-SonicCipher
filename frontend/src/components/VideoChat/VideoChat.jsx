@@ -68,6 +68,8 @@ const VideoChat = ({ onClose }) => {
             connection.on('open', () => {
                 setConnected(true);
                 setRecId(connection.peer);
+                setSourceLang(sourceLang);
+                setTargetLang(targetLang);
                 console.log(`Peer 1 language settings:`);
                 console.log(`Source Language: ${sourceLang}`);
                 console.log(`Target Language: ${targetLang}`);
