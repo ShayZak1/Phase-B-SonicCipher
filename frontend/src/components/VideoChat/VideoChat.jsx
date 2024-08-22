@@ -68,12 +68,12 @@ const VideoChat = ({ onClose }) => {
             connection.on('open', () => {
                 setConnected(true);
                 setRecId(connection.peer);
-                setSourceLang(sourceLang);
-                setTargetLang(targetLang);
                 console.log(`Peer 1 language settings:`);
+                const updatedSourceLang = sourceLang; // Save current sourceLang in a local variable
+                const updatedTargetLang = targetLang; // Save current targetLang in a local variable
                 console.log(`Source Language: ${sourceLang}`);
                 console.log(`Target Language: ${targetLang}`);
-                startRealTimeTranscription(); // Start transcription after connection
+                startRealTimeTranscription(updatedSourceLang, updatedTargetLang); // Start transcription after connection
             });
         });
 
@@ -107,7 +107,7 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
-  const startRealTimeTranscription = () => {
+  const startRealTimeTranscription = (sourceLang, targetLang) => {
     if (!('webkitSpeechRecognition' in window)) {
         console.error('Speech recognition not supported in this browser.');
         return;
