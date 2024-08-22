@@ -28,12 +28,28 @@ const VideoChat = ({ onClose }) => {
 
   const toggleMute = () => {
     if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
-      setIsMuted(!isMuted);
+        localStreamRef.current.getAudioTracks().forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        setIsMuted(!isMuted);
+
+        if (!isMuted) {
+            // If unmuting, restart speech recognition
+            if (recognitionRef.current) {
+                console.log('Restarting recognition after unmuting...');
+                recognitionRef.current.stop();
+                setTimeout(() => recognitionRef.current.start(), 500); // Small delay before restarting
+            }
+        } else {
+            // If muting, stop speech recognition
+            if (recognitionRef.current) {
+                console.log('Stopping recognition due to mute...');
+                recognitionRef.current.stop();
+            }
+        }
     }
-  };
+};
+
 
   // Function to handle language change
   const handleLanguageChange = (source, target) => {
@@ -142,12 +158,29 @@ const VideoChat = ({ onClose }) => {
 
     recognition.onerror = (event) => {
       if (event.error === 'no-speech' || event.error === 'network') {
-        recognition.stop();
-        recognition.start();
+          console.error('Error: ', event.error);
+          recognitionRef.current.stop();
+          setTimeout(() => {
+              if (!isMuted) {  // Only restart if the mic is not muted
+                  console.log('Restarting speech recognition after error...');
+                  recognitionRef.current.start();
+              }
+          }, 1000);
       } else {
-        console.error(`Error occurred in recognition: ${event.error}`);
+          console.error(`Error occurred in recognition: ${event.error}`);
       }
-    };
+  };
+  
+  recognition.onend = () => {
+      console.log("Speech recognition ended, checking if restart is needed...");
+      if (!isMuted) {  // Only restart if the mic is not muted
+          setTimeout(() => {
+              console.log('Restarting speech recognition...');
+              recognitionRef.current.start();
+          }, 1000);
+      }
+  };
+  
 
     recognitionRef.current = recognition;
     recognition.start();
