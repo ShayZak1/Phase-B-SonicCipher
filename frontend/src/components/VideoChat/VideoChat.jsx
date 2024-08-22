@@ -114,80 +114,86 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
-  const startRealTimeTranscription = () => {
+  const startRealTimeTranscription = (language) => {
     if (!('webkitSpeechRecognition' in window)) {
-      console.error('Speech recognition not supported in this browser.');
-      return;
+        console.error('Speech recognition not supported in this browser.');
+        return;
     }
 
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = sourceLangRef.current; // Use the source language ref
-    console.log(`Starting real-time transcription with source language: ${recognition.lang}`);
+    recognition.lang = language; // Use the passed source language
 
     recognition.onresult = (event) => {
-      let interimTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        interimTranscript += event.results[i][0].transcript;
-      }
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            interimTranscript += event.results[i][0].transcript;
+        }
 
-      console.log(`Interim transcript: ${interimTranscript}`);
-      sendTranscriptToPeer(interimTranscript);
+        // Translate the transcript and send it to the peer
+        sendTranscriptToPeer(interimTranscript);
     };
 
     recognition.onerror = (event) => {
-      if (event.error === 'no-speech' || event.error === 'network') {
-        recognition.stop();
-        recognition.start();
-      } else {
-        console.error(`Error occurred in recognition: ${event.error}`);
-      }
+        if (event.error === 'no-speech' || event.error === 'network') {
+            recognition.stop();
+            recognition.start();
+        } else {
+            console.error(`Error occurred in recognition: ${event.error}`);
+        }
     };
 
     recognitionRef.current = recognition;
     recognition.start();
-  };
+    console.log(`Starting real-time transcription with source language: ${language}`);
+};
 
   const connect = (e) => {
     e.preventDefault();
 
     if (!connected) {
-      const connection = peerRef.current.connect(recId);
-      connRef.current = connection;
+        const connection = peerRef.current.connect(recId);
+        connRef.current = connection;
+        console.log('hello');
 
-      connection.on('open', () => {
-        setConnected(true);
-        setRecId(connection.peer);
+        connection.on('open', () => {
+            setConnected(true);
 
-        // Log languages when Peer 2 connects
-        console.log(`Peer 2 language settings on connect:`);
-        console.log(`Source Language: ${sourceLangRef.current}`);
-        console.log(`Target Language: ${targetLangRef.current}`);
+            // Set the latest language settings
+            const currentSourceLang = sourceLang; // Get the latest source language
+            const currentTargetLang = targetLang; // Get the latest target language
 
-        startRealTimeTranscription();
-      });
+            console.log(`Source Language set to: ${currentSourceLang}`);
+            console.log(`Target Language set to: ${currentTargetLang}`);
 
-      connection.on('data', (data) => {
-        if (data.type === 'message') {
-          setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-        } else if (data.type === 'transcript') {
-          console.log(`Transcript received: ${data.text}`);
-          setSubtitle(data.text);
-        }
-      });
+            connection.on('data', (data) => {
+                if (data.type === 'message') {
+                    setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+                } else if (data.type === 'transcript') {
+                    // Display the translated text received from the peer
+                    setSubtitle(data.text);
+                }
+            });
 
-      const call = peerRef.current.call(recId, localStreamRef.current);
-      callRef.current = call;
+            const call = peerRef.current.call(recId, localStreamRef.current);
+            callRef.current = call;
 
-      call.on('stream', (remoteStream) => {
-        remoteVideoRef.current.srcObject = remoteStream;
-      });
+            call.on('stream', (remoteStream) => {
+                remoteVideoRef.current.srcObject = remoteStream;
+            });
 
+            // Start real-time transcription with the correct language settings
+            startRealTimeTranscription(currentSourceLang); 
+        });
+
+        connection.on('error', (err) => {
+            console.error('Connection error:', err);
+        });
     } else {
-      disconnect();
+        disconnect();
     }
-  };
+};
 
   const disconnect = () => {
     if (callRef.current) callRef.current.close();
