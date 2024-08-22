@@ -116,7 +116,7 @@ const VideoChat = ({ onClose }) => {
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = sourceLang; // Peer 1's selected source language
+    recognition.lang = sourceLang; // Use the passed source language
 
     recognition.onresult = (event) => {
         let interimTranscript = '';
@@ -125,7 +125,7 @@ const VideoChat = ({ onClose }) => {
         }
 
         // Translate the transcript and send it to the peer
-        sendTranscriptToPeer(interimTranscript);
+        sendTranscriptToPeer(interimTranscript, targetLang);
     };
 
     recognition.onerror = (event) => {
@@ -142,45 +142,50 @@ const VideoChat = ({ onClose }) => {
 };
 
 
-  const connect = (e) => {
-    e.preventDefault();
 
-    if (!connected) {
+const connect = (e) => {
+  e.preventDefault();
+
+  if (!connected) {
       const connection = peerRef.current.connect(recId);
       connRef.current = connection;
-      console.log('Connection established. Peer 1 language settings:');
-      console.log(`Source Language: ${sourceLang}`);
-      console.log(`Target Language: ${targetLang}`);
+      console.log('hello');
 
       connection.on('open', () => {
-        setConnected(true);
-        connection.on('data', (data) => {
+          setConnected(true);
+          setRecId(connection.peer);
+
+          // Force-set the correct languages here
+          const currentSourceLang = sourceLang;
+          const currentTargetLang = targetLang;
+
+          console.log(`Reapplying language settings after connection:`);
+          console.log(`Source Language set to: ${currentSourceLang}`);
+          console.log(`Target Language set to: ${currentTargetLang}`);
+
+          // Use the force-set languages
+          startRealTimeTranscription(currentSourceLang, currentTargetLang);
+      });
+
+      connection.on('data', (data) => {
           if (data.type === 'message') {
-            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+              setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
           } else if (data.type === 'transcript') {
-            // Display the translated text received from the peer
-            setSubtitle(data.text);
-            console.log(`Received transcript: ${data.text}`);
+              setSubtitle(data.text);
           }
-        });
+      });
 
-        const call = peerRef.current.call(recId, localStreamRef.current);
-        callRef.current = call;
+      const call = peerRef.current.call(recId, localStreamRef.current);
+      callRef.current = call;
 
-        call.on('stream', (remoteStream) => {
+      call.on('stream', (remoteStream) => {
           remoteVideoRef.current.srcObject = remoteStream;
-        });
-
-        startRealTimeTranscription(); // Start transcription after connection
       });
-
-      connection.on('error', (err) => {
-        console.error('Connection error:', err);
-      });
-    } else {
+  } else {
       disconnect();
-    }
-  };
+  }
+};
+
 
   const disconnect = () => {
     if (callRef.current) callRef.current.close();
