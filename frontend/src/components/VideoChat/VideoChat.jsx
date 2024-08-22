@@ -225,7 +225,7 @@ const VideoChat = ({ onClose }) => {
       disconnect();
     };
   }, []);
-
+  
   const handleSourceLangChange = (e) => {
     const newSourceLang = e.target.value;
     setSourceLang(newSourceLang);
@@ -273,27 +273,29 @@ const handleTargetLangChange = (e) => {
         </div>
         <div className="mb-4">
           <label htmlFor="sourceLang" className="block text-sm font-medium text-gray-300">Source Language</label>
-         <select
-        id="sourceLang"
-        value={sourceLang}
-        onChange={handleSourceLangChange}
-      >
+          <select
+            id="sourceLang"
+            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
+            value={sourceLang}
+            onChange={handleSourceLangChange}
+            >
         {Object.entries(languages).map(([code, name]) => (
           <option key={code} value={code}>{name}</option>
         ))}
-      </select>
+          </select>
         </div>
         <div className="mb-4">
           <label htmlFor="targetLang" className="block text-sm font-medium text-gray-300">Target Language</label>
           <select
-        id="targetLang"
-        value={targetLang}
-        onChange={handleTargetLangChange}
-      >
+            id="targetLang"
+            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
+            value={targetLang}
+            onChange={handleTargetLangChange}
+          >
         {Object.entries(languages).map(([code, name]) => (
           <option key={code} value={code}>{name}</option>
         ))}
-      </select>
+          </select>
         </div>
         <div className="py-2">
           <button
