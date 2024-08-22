@@ -226,6 +226,18 @@ const VideoChat = ({ onClose }) => {
     };
   }, []);
 
+  const handleSourceLangChange = (e) => {
+    const newSourceLang = e.target.value;
+    setSourceLang(newSourceLang);
+    console.log(`Source Language set to: ${newSourceLang}`);
+};
+
+const handleTargetLangChange = (e) => {
+    const newTargetLang = e.target.value;
+    setTargetLang(newTargetLang);
+    console.log(`Target Language set to: ${newTargetLang}`);
+};
+
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={() => { disconnect(); onClose(); }}>
@@ -261,29 +273,27 @@ const VideoChat = ({ onClose }) => {
         </div>
         <div className="mb-4">
           <label htmlFor="sourceLang" className="block text-sm font-medium text-gray-300">Source Language</label>
-          <select
-            id="sourceLang"
-            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
-            value={sourceLang}
-            onChange={(e) => setSourceLang(e.target.value)}
-          >
-            {Object.entries(languages).map(([code, name]) => (
-              <option key={code} value={code}>{name}</option>
-            ))}
-          </select>
+         <select
+        id="sourceLang"
+        value={sourceLang}
+        onChange={handleSourceLangChange}
+      >
+        {Object.entries(languages).map(([code, name]) => (
+          <option key={code} value={code}>{name}</option>
+        ))}
+      </select>
         </div>
         <div className="mb-4">
           <label htmlFor="targetLang" className="block text-sm font-medium text-gray-300">Target Language</label>
           <select
-            id="targetLang"
-            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
-            value={targetLang}
-            onChange={(e) => setTargetLang(e.target.value)}
-          >
-            {Object.entries(languages).map(([code, name]) => (
-              <option key={code} value={code}>{name}</option>
-            ))}
-          </select>
+        id="targetLang"
+        value={targetLang}
+        onChange={handleTargetLangChange}
+      >
+        {Object.entries(languages).map(([code, name]) => (
+          <option key={code} value={code}>{name}</option>
+        ))}
+      </select>
         </div>
         <div className="py-2">
           <button
