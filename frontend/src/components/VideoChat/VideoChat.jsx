@@ -13,6 +13,7 @@ const VideoChat = ({ onClose }) => {
   const [subtitle, setSubtitle] = useState('');
   const [sourceLang, setSourceLang] = useState('en-GB');
   const [targetLang, setTargetLang] = useState('he-IL');
+  
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
@@ -21,84 +22,78 @@ const VideoChat = ({ onClose }) => {
   const localStreamRef = useRef(null);
   const chatMessageRef = useRef(null);
   const recognitionRef = useRef(null);
-  const [isMuted, setIsMuted] = useState(false);
-
-
-  const toggleMute = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
-      setIsMuted(!isMuted);
-    }
-  };
-
+  
+  // Store languages in refs to ensure consistency
+  const sourceLangRef = useRef(sourceLang);
+  const targetLangRef = useRef(targetLang);
   
   const init = async () => {
     try {
-        const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localVideoRef.current.srcObject = localStream;
-        localStreamRef.current = localStream;
+      const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideoRef.current.srcObject = localStream;
+      localStreamRef.current = localStream;
 
-        const peer = new Peer(undefined, peerConfig1);
-        peerRef.current = peer;
+      const peer = new Peer(undefined, peerConfig1);
+      peerRef.current = peer;
 
-        peer.on('open', (id) => {
-            setMyId(id);
+      peer.on('open', (id) => {
+        setMyId(id);
+      });
+
+      peer.on('call', (incomingCall) => {
+        console.log("Receiving call...");
+        incomingCall.answer(localStream);
+        incomingCall.on('stream', (remoteStream) => {
+          remoteVideoRef.current.srcObject = remoteStream;
+        });
+      });
+
+      peer.on('connection', (connection) => {
+        connRef.current = connection;
+
+        connection.on('data', (data) => {
+          if (data.type === 'message') {
+            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+          } else if (data.type === 'transcript') {
+            setSubtitle(data.text);
+          }
         });
 
-        peer.on('call', (incomingCall) => {
-            console.log("Receiving call...");
-            incomingCall.answer(localStream);
-            incomingCall.on('stream', (remoteStream) => {
-                remoteVideoRef.current.srcObject = remoteStream;
-            });
-        });
+        connection.on('open', () => {
+          setConnected(true);
+          setRecId(connection.peer);
+          
+          // Update refs with the latest selected languages
+          sourceLangRef.current = sourceLang;
+          targetLangRef.current = targetLang;
 
-        peer.on('connection', (connection) => {
-            connRef.current = connection;
-            connection.on('data', (data) => {
-                if (data.type === 'message') {
-                    setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-                } else if (data.type === 'transcript') {
-                    // Display the translated text received from the peer
-                    setSubtitle(data.text);
-                }
-            });
-            connection.on('open', () => {
-                setConnected(true);
-                setRecId(connection.peer);
-                console.log(`Peer 1 language settings:`);
-                const updatedSourceLang = sourceLang; // Save current sourceLang in a local variable
-                const updatedTargetLang = targetLang; // Save current targetLang in a local variable
-                console.log(`Source Language: ${sourceLang}`);
-                console.log(`Target Language: ${targetLang}`);
-                startRealTimeTranscription(updatedSourceLang, updatedTargetLang); // Start transcription after connection
-            });
-        });
+          console.log(`Peer 1 language settings after connection:`);
+          console.log(`Source Language: ${sourceLangRef.current}`);
+          console.log(`Target Language: ${targetLangRef.current}`);
 
+          startRealTimeTranscription(); // Start transcription after connection
+        });
+      });
     } catch (error) {
-        console.error('Error accessing media devices.', error);
+      console.error('Error accessing media devices.', error);
     }
-};
-
+  };
 
   const sendTranscriptToPeer = async (transcript) => {
     console.log(`Sending transcript: ${transcript}`);
-    console.log(`Using source language: ${sourceLang} and target language: ${targetLang}`);
+    console.log(`Using source language: ${sourceLangRef.current} and target language: ${targetLangRef.current}`);
 
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
         q: transcript,
-        source: sourceLang,
-        target: targetLang,
+        source: sourceLangRef.current,
+        target: targetLangRef.current,
         format: 'text',
       });
 
       const translatedText = response.data.data.translations[0].translatedText;
       console.log(`Translated text: ${translatedText}`);
 
-      // Send the translated text to the peer
       if (connRef.current && connRef.current.open) {
         connRef.current.send({ type: 'transcript', text: translatedText });
       }
@@ -107,85 +102,79 @@ const VideoChat = ({ onClose }) => {
     }
   };
 
-  const startRealTimeTranscription = (sourceLang, targetLang) => {
+  const startRealTimeTranscription = () => {
     if (!('webkitSpeechRecognition' in window)) {
-        console.error('Speech recognition not supported in this browser.');
-        return;
+      console.error('Speech recognition not supported in this browser.');
+      return;
     }
 
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = sourceLang; // Use the passed source language
+    recognition.lang = sourceLangRef.current; // Use the source language ref
 
     recognition.onresult = (event) => {
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            interimTranscript += event.results[i][0].transcript;
-        }
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        interimTranscript += event.results[i][0].transcript;
+      }
 
-        // Translate the transcript and send it to the peer
-        sendTranscriptToPeer(interimTranscript, targetLang);
+      sendTranscriptToPeer(interimTranscript);
     };
 
     recognition.onerror = (event) => {
-        if (event.error === 'no-speech' || event.error === 'network') {
-            recognition.stop();
-            recognition.start();
-        } else {
-            console.error(`Error occurred in recognition: ${event.error}`);
-        }
+      if (event.error === 'no-speech' || event.error === 'network') {
+        recognition.stop();
+        recognition.start();
+      } else {
+        console.error(`Error occurred in recognition: ${event.error}`);
+      }
     };
 
     recognitionRef.current = recognition;
     recognition.start();
-};
+  };
 
+  const connect = (e) => {
+    e.preventDefault();
 
-
-const connect = (e) => {
-  e.preventDefault();
-
-  if (!connected) {
+    if (!connected) {
       const connection = peerRef.current.connect(recId);
       connRef.current = connection;
-      console.log('hello');
 
       connection.on('open', () => {
-          setConnected(true);
-          setRecId(connection.peer);
+        setConnected(true);
+        setRecId(connection.peer);
 
-          // Force-set the correct languages here
-          const currentSourceLang = sourceLang;
-          const currentTargetLang = targetLang;
+        sourceLangRef.current = sourceLang;
+        targetLangRef.current = targetLang;
 
-          console.log(`Reapplying language settings after connection:`);
-          console.log(`Source Language set to: ${currentSourceLang}`);
-          console.log(`Target Language set to: ${currentTargetLang}`);
+        console.log(`Peer 2 language settings on connect:`);
+        console.log(`Source Language: ${sourceLangRef.current}`);
+        console.log(`Target Language: ${targetLangRef.current}`);
 
-          // Use the force-set languages
-          startRealTimeTranscription(currentSourceLang, currentTargetLang);
+        startRealTimeTranscription();
       });
 
       connection.on('data', (data) => {
-          if (data.type === 'message') {
-              setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-          } else if (data.type === 'transcript') {
-              setSubtitle(data.text);
-          }
+        if (data.type === 'message') {
+          setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+        } else if (data.type === 'transcript') {
+          setSubtitle(data.text);
+        }
       });
 
       const call = peerRef.current.call(recId, localStreamRef.current);
       callRef.current = call;
 
       call.on('stream', (remoteStream) => {
-          remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.srcObject = remoteStream;
       });
-  } else {
-      disconnect();
-  }
-};
 
+    } else {
+      disconnect();
+    }
+  };
 
   const disconnect = () => {
     if (callRef.current) callRef.current.close();
@@ -232,27 +221,12 @@ const connect = (e) => {
       disconnect();
     };
   }, []);
-  
-  const handleSourceLangChange = (e) => {
-    const newSourceLang = e.target.value;
-    setSourceLang(newSourceLang);
-    console.log(`Source Language set to: ${newSourceLang}`);
-};
-
-const handleTargetLangChange = (e) => {
-    const newTargetLang = e.target.value;
-    setTargetLang(newTargetLang);
-    console.log(`Target Language set to: ${newTargetLang}`);
-};
 
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
       <button className="absolute top-4 right-4 text-2xl" onClick={() => { disconnect(); onClose(); }}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
-      <button className="absolute top-4 right-12 text-2xl" onClick={toggleMute}>
-       <i className={`fa-solid ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} text-white`}></i>
-        </button>
 
       <h1 className="text-3xl text-center py-4">Communicator</h1>
       <form onSubmit={connect}>
@@ -284,11 +258,14 @@ const handleTargetLangChange = (e) => {
             id="sourceLang"
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
             value={sourceLang}
-            onChange={handleSourceLangChange}
-            >
-        {Object.entries(languages).map(([code, name]) => (
-          <option key={code} value={code}>{name}</option>
-        ))}
+            onChange={(e) => {
+              setSourceLang(e.target.value);
+              sourceLangRef.current = e.target.value;
+            }}
+          >
+            {Object.entries(languages).map(([code, name]) => (
+              <option key={code} value={code}>{name}</option>
+            ))}
           </select>
         </div>
         <div className="mb-4">
@@ -297,11 +274,14 @@ const handleTargetLangChange = (e) => {
             id="targetLang"
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
             value={targetLang}
-            onChange={handleTargetLangChange}
+            onChange={(e) => {
+              setTargetLang(e.target.value);
+              targetLangRef.current = e.target.value;
+            }}
           >
-        {Object.entries(languages).map(([code, name]) => (
-          <option key={code} value={code}>{name}</option>
-        ))}
+            {Object.entries(languages).map(([code, name]) => (
+              <option key={code} value={code}>{name}</option>
+            ))}
           </select>
         </div>
         <div className="py-2">
