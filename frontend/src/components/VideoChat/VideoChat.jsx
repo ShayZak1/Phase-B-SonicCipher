@@ -208,62 +208,76 @@ const VideoChat = ({ onClose }) => {
     e.preventDefault();
 
     if (!connected) {
-      const connection = peerRef.current.connect(recId);
-      connRef.current = connection;
-      console.log('hello');
-      connection.on('open', () => {
-        setConnected(true);
-        connection.on('data', (data) => {
-          if (data.type === 'message') {
-            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-          } else if (data.type === 'transcript') {
-            // Display the translated text received from the peer
-            setSubtitle(data.text);
-          }
+        const connection = peerRef.current.connect(recId);
+        connRef.current = connection;
+        console.log('hello');
+        
+        connection.on('open', () => {
+            setConnected(true);
+            connection.on('data', (data) => {
+                if (data.type === 'message') {
+                    setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+                } else if (data.type === 'transcript') {
+                    // Display the translated text received from the peer
+                    setSubtitle(data.text);
+                } else if (data.type === 'disconnect') {
+                    // Handle the disconnect message from the peer
+                    console.log('Peer has disconnected');
+                    disconnect(); // Automatically disconnect the other peer
+                }
+            });
+
+            const call = peerRef.current.call(recId, localStreamRef.current);
+            callRef.current = call;
+
+            call.on('stream', (remoteStream) => {
+                remoteVideoRef.current.srcObject = remoteStream;
+            });
+
+            startRealTimeTranscription(); // Start transcription after connection
         });
 
-        const call = peerRef.current.call(recId, localStreamRef.current);
-        callRef.current = call;
-
-        call.on('stream', (remoteStream) => {
-          remoteVideoRef.current.srcObject = remoteStream;
+        connection.on('error', (err) => {
+            console.error('Connection error:', err);
         });
-
-        startRealTimeTranscription(); // Start transcription after connection
-      });
-
-      connection.on('error', (err) => {
-        console.error('Connection error:', err);
-      });
     } else {
-      disconnect();
+        disconnect();
     }
-  };
+};
+
 
   const disconnect = () => {
+    if (connRef.current && connRef.current.open) {
+        // Send a disconnect message to the peer
+        connRef.current.send({ type: 'disconnect' });
+    }
+
     if (callRef.current) callRef.current.close();
     if (connRef.current) connRef.current.close();
     if (peerRef.current) peerRef.current.destroy();
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
     }
 
     if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
-      remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      remoteVideoRef.current.srcObject = null;
+        remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideoRef.current.srcObject = null;
     }
 
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+        console.log('Stopping speech recognition due to disconnect...');
+        recognitionRef.current.stop();
+        recognitionRef.current.abort(); // Ensure it fully stops and does not restart
     }
 
     setConnected(false);
     setRecId('');
     localVideoRef.current.srcObject = null;
     remoteVideoRef.current.srcObject = null;
-  };
+};
+
 
   const sendMessage = (e) => {
     e.preventDefault();
