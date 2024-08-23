@@ -27,10 +27,11 @@ const VideoChat = ({ onClose }) => {
   const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
-    // Dynamically load Eruda
+    // Dynamically load Eruda and assign it to a variable
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/eruda';
     script.onload = () => {
+      const eruda = window.eruda; // Assign to a variable
       eruda.init();
     };
     document.body.appendChild(script);
@@ -40,6 +41,7 @@ const VideoChat = ({ onClose }) => {
       document.body.removeChild(script);
     };
   }, []);
+
 
   const toggleMute = () => {
     if (localStreamRef.current) {
