@@ -26,6 +26,21 @@ const VideoChat = ({ onClose }) => {
   const recognitionRef = useRef(null);
   const [isMuted, setIsMuted] = useState(false);
 
+  useEffect(() => {
+    // Dynamically load Eruda
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    script.onload = () => {
+      eruda.init();
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      // Clean up the script when the component is unmounted
+      document.body.removeChild(script);
+    };
+  }, []);
+
   const toggleMute = () => {
     if (localStreamRef.current) {
         localStreamRef.current.getAudioTracks().forEach(track => {
