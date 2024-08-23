@@ -4,7 +4,7 @@ import Peer from 'peerjs';
 import axios from 'axios';
 import { peerConfig1 } from '../../config';
 import { languages } from '../../LanguageData';
-import PopupMessage from './PopupMessage'; 
+import PopupMessage from '../PopupMessage/PopupMessage'; 
 
 // Global variables to store language settings
 let globalSourceLang = 'en-GB';
