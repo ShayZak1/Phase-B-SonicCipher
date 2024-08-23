@@ -307,7 +307,17 @@ const disconnect = () => {
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
     {showPopup && (
     <PopupMessage 
-        message="Follow these instructions to start your video chat."
+          message={
+            <>
+              Follow these steps to start your video chat:<br />
+              1. Copy your Nickname (click the box to copy).<br />
+              2. Share your Nickname ID with the other person.<br />
+              3. Set your Source Language to the language you speak,<br />
+                and Target Language to the language the other person speaks.<br />
+              4. The person who received the ID should click 'Connect' to start.
+            </>
+          }
+    
         onClose={() => setShowPopup(false)}
         nickname={myId} // Pass the nickname to the PopupMessage component
           />
