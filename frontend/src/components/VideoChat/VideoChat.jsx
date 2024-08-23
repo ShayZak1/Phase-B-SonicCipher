@@ -4,6 +4,7 @@ import Peer from 'peerjs';
 import axios from 'axios';
 import { peerConfig1 } from '../../config';
 import { languages } from '../../LanguageData';
+import PopupMessage from './PopupMessage'; 
 
 // Global variables to store language settings
 let globalSourceLang = 'en-GB';
@@ -25,6 +26,7 @@ const VideoChat = ({ onClose }) => {
   const chatMessageRef = useRef(null);
   const recognitionRef = useRef(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [showPopup, setShowPopup] = useState(true); // To control the popup visibility
 
   useEffect(() => {
     // Dynamically load Eruda and assign it to a variable
@@ -303,6 +305,13 @@ const disconnect = () => {
 
   return (
     <div id="videot" className="relative w-full h-full max-w-[680px] bg-gray-800 bg-opacity-70 rounded-3xl p-6 mx-auto my-12 text-white">
+    {showPopup && (
+    <PopupMessage 
+        message="Follow these instructions to start your video chat."
+        onClose={() => setShowPopup(false)}
+        nickname={myId} // Pass the nickname to the PopupMessage component
+          />
+          )}  
       <button className="absolute top-4 right-4 text-2xl" onClick={() => { disconnect(); onClose(); }}>
         <i className="fa-solid fa-xmark text-white"></i>
       </button>
