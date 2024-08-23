@@ -247,6 +247,10 @@ const VideoChat = ({ onClose }) => {
 
 
 const disconnect = () => {
+  if (connRef.current && connRef.current.open) {
+      connRef.current.send({ type: 'disconnect' }); // Notify the other peer
+  }
+
   if (callRef.current) callRef.current.close();
   if (connRef.current) connRef.current.close();
   if (peerRef.current) peerRef.current.destroy();
@@ -272,6 +276,7 @@ const disconnect = () => {
   localVideoRef.current.srcObject = null;
   remoteVideoRef.current.srcObject = null;
 };
+
 
 
 
