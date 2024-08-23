@@ -246,37 +246,33 @@ const VideoChat = ({ onClose }) => {
 };
 
 
-  const disconnect = () => {
-    if (connRef.current && connRef.current.open) {
-        // Send a disconnect message to the peer
-        connRef.current.send({ type: 'disconnect' });
-    }
+const disconnect = () => {
+  if (callRef.current) callRef.current.close();
+  if (connRef.current) connRef.current.close();
+  if (peerRef.current) peerRef.current.destroy();
 
-    if (callRef.current) callRef.current.close();
-    if (connRef.current) connRef.current.close();
-    if (peerRef.current) peerRef.current.destroy();
+  if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+  }
 
-    if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-        localStreamRef.current = null;
-    }
+  if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
+      remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      remoteVideoRef.current.srcObject = null;
+  }
 
-    if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
-        remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-        remoteVideoRef.current.srcObject = null;
-    }
+  if (recognitionRef.current) {
+      recognitionRef.current.onend = null; // Prevent auto-restart on 'end'
+      recognitionRef.current.stop();       // Stop the recognition
+      recognitionRef.current = null;       // Clear the reference
+  }
 
-    if (recognitionRef.current) {
-        console.log('Stopping speech recognition due to disconnect...');
-        recognitionRef.current.stop();
-        recognitionRef.current.abort(); // Ensure it fully stops and does not restart
-    }
-
-    setConnected(false);
-    setRecId('');
-    localVideoRef.current.srcObject = null;
-    remoteVideoRef.current.srcObject = null;
+  setConnected(false);
+  setRecId('');
+  localVideoRef.current.srcObject = null;
+  remoteVideoRef.current.srcObject = null;
 };
+
 
 
   const sendMessage = (e) => {
