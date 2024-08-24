@@ -25,8 +25,8 @@ const Hero = ({ onStart }) => {
           </p>
 
           <div className="block">
-            <button className="button button-main mr-4 uppercase" onClick={onStart}>Start Translating</button>
-            <button className="button button-main mr-4">Learn More</button>
+            <button className="button button-main mr-4 " onClick={onStart}>Start Translating</button>
+            <button className="button button-main mr-4">Video Translation</button>
           </div>
         </div>
       </div>

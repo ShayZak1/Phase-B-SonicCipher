@@ -107,7 +107,7 @@ app.post('/openai-translate', async (req, res) => {
     Examples of translations:
     English: "How are you?" -> Hebrew (formal): "מה שלומך?"
     English: "How are you?" -> Hebrew (slang): "מה קורה?"
-
+    Only return the translated text.
     Now translate the following text:
     "${q}"`;
 
@@ -116,7 +116,7 @@ app.post('/openai-translate', async (req, res) => {
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
       model: "gpt-4",
       messages: [
-        { role: "system", content: "You are a highly accurate translation assistant." },
+        { role: "system", content: "You are a translation assistant. Only provide the translation as instructed, without adding extra notes or explanations." },
         { role: "user", content: prompt }
       ],
       max_tokens: 1000,
