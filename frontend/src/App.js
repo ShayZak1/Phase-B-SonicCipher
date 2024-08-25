@@ -7,6 +7,8 @@ import NavBar from "./components/NavBar";
 import TranslatorApp from "./components/Translator/TranslatorApp";
 import videoFile from './assets/img/TranslateBg.mp4';
 import VideoChat from './components/VideoChat/VideoChat';
+import ShimmerButton from './components/ShimmerButton/ShimmerButton';  // Adjust the path as necessary
+import Ripple from './components/RippleEffect/RippleEffect';  // Adjust the path as necessary
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('/');
@@ -22,7 +24,9 @@ const App = () => {
   };
 
   return (
+    
     <div className="relative w-full h-screen">
+
       {currentPage === '/translator' ? (
         <div className="translator-bg">
           <video
@@ -65,6 +69,7 @@ const App = () => {
           <ContactUs onStart={() => handleNavigate('/translator')} />
         </>
       )}
+      
     </div>
   );
 };
