@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import ContactUs from "./components/ContactUs";
 import Hero from "./components/Hero";
 import Sonicintro from "./components/Sonicintro";
@@ -7,30 +7,36 @@ import NavBar from "./components/NavBar";
 import TranslatorApp from "./components/Translator/TranslatorApp";
 import videoFile from './assets/img/TranslateBg.mp4';
 import VideoChat from './components/VideoChat/VideoChat';
-import ShimmerButton from './components/ShimmerButton/ShimmerButton';  // Adjust the path as necessary
-import Ripple from './components/RippleEffect/RippleEffect';  // Adjust the path as necessary
+import ShimmerButton from './components/ShimmerButton/ShimmerButton';
+import Ripple from './components/RippleEffect/RippleEffect';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('/');
+  const videoRef = useRef(null); // Create a ref for the video element
 
   useEffect(() => {
-    // Set the current page based on the URL path
     setCurrentPage(window.location.pathname);
   }, []);
 
   const handleNavigate = (path) => {
-    window.history.pushState({}, '', path);
-    setCurrentPage(path);
+    window.location.href = path; // Forces full page reload
   };
 
-  return (
-    
-    <div className="relative w-full h-screen">
+  useEffect(() => {
+    // Ensure the video element is not null before accessing its style
+    if (videoRef.current) {
+      videoRef.current.style.filter = 'brightness(70%) blur(5px)';
+    } else {
+      console.error('Video element is not yet available');
+    }
+  }, [currentPage]); // Re-run when currentPage changes
 
+  return (
+    <div className="relative w-full h-screen">
       {currentPage === '/translator' ? (
         <div className="translator-bg">
           <video
-            style={{ filter: 'brightness(70%) blur(5px)' }}
+            ref={videoRef} // Assign the ref to the video element
             autoPlay
             muted
             loop
@@ -47,7 +53,7 @@ const App = () => {
       ) : currentPage === '/videochat' ? (
         <div className="video-chat-bg">
           <video
-            style={{ filter: 'brightness(70%) blur(5px)' }}
+            ref={videoRef} // Assign the ref to the video element
             autoPlay
             muted
             loop
@@ -64,12 +70,11 @@ const App = () => {
       ) : (
         <>
           <NavBar onStart={() => handleNavigate('/translator')} onStartVideoChat={() => handleNavigate('/videochat')} />
-          <Hero onStart={() => handleNavigate('/translator')} />
+          <Hero onStart={() => handleNavigate('/translator')} onStartVideoChat={() => handleNavigate('/videochat')}/>
           <Sonicintro onStart={() => handleNavigate('/translator')} />
           <ContactUs onStart={() => handleNavigate('/translator')} />
         </>
       )}
-      
     </div>
   );
 };

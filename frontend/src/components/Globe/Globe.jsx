@@ -5,18 +5,19 @@ import { useSpring } from 'react-spring'; // Ensure react-spring is compatible w
 import { cn } from '../../lib/utils'; // Adjust the import path to your utils
 
 const GLOBE_CONFIG = {
-  width: 800,
-  height: 800,
-  onRender: () => {},
-  devicePixelRatio: 2,
-  phi: 0,
-  theta: 0.3,
-  dark: 0,
-  diffuse: 0.4,
-  mapSamples: 16000,
-  mapBrightness: 1.2,
-  baseColor: [0.3686, 0.4471, 0.5882], 
+    devicePixelRatio: 2,
+    width: 1000,
+    height: 1000,
+    phi: 0,
+    theta: 0,
+    dark: 1,
+    diffuse: 1.2,
+    scale: 1,
+    mapSamples: 16000,
+    mapBrightness: 1.2,
+  baseColor: [1, 1, 1], 
   markerColor: [251 / 255, 100 / 255, 21 / 255],
+  mapColor: [1, 1, 1],
   glowColor: [1, 1, 1],
   markers: [
     { location: [14.5995, 120.9842], size: 0.03 },
@@ -50,7 +51,9 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
 
   const updatePointerInteraction = (value) => {
     pointerInteracting.current = value;
-    canvasRef.current.style.cursor = value ? "grabbing" : "grab";
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = value ? "grabbing" : "grab";
+    }
   };
 
   const updateMovement = (clientX) => {
@@ -88,14 +91,25 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
       onRender,
     });
 
-    setTimeout(() => (canvasRef.current.style.opacity = "1"));
-    return () => globe.destroy();
+    // Ensure the canvas exists before setting its style
+    setTimeout(() => {
+      if (canvasRef.current) {
+        canvasRef.current.style.opacity = "1";
+      } else {
+        console.error("Canvas element not found during opacity change");
+      }
+    }, 0);
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+      globe.destroy();
+    };
   }, [config, onRender]);
 
   return (
     <div
       className={cn(
-        "absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[600px]",
+        "absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[1000px]",
         className,
       )}
     >
