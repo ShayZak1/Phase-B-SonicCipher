@@ -10,7 +10,7 @@ const NavBar = ({ onStart, onStartVideoChat }) => {
         { name: 'Home', link: '#hero' },
         { name: 'About', link: '#soniclogo' },
         { name: 'Contact', link: '#contact-us' },
-        { name: 'Video Translation', link: '#videot' },
+        
     ];
 
     const handleNav = () => {
