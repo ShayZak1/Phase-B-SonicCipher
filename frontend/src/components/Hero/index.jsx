@@ -1,6 +1,5 @@
 import { h } from 'preact';
 import Globe from '../Globe/Globe'; // Adjust the path as necessary
-import HyperText from '../HyperText/HyperText'; // Ensure the correct path to HyperText
 import TypingAnimation from '../HyperText/Animation'; // Ensure the correct path to HyperText
 
 const Hero = ({ onStart, onStartVideoChat }) => {
