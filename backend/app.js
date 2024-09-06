@@ -47,6 +47,7 @@ app.post('/translate', async (req, res) => {
     res.status(500).json({ error: 'Failed to translate text' });
   }
 });
+app.use('/contact', contactUsRouter);
 
 app.post('/speech-to-text', async (req, res) => {
   const { audioBase64, languageCode } = req.body;
