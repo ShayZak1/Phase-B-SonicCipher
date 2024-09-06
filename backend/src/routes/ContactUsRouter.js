@@ -1,10 +1,10 @@
 // Backend/Routes/ContactUsRouter.js
 
-import { Router } from 'express';
-import { handleContactForm } from '../controllers/ContactUsController.js';
+const express = require('express');
+const { handleContactForm } = require('../controllers/ContactUsController'); // Use require instead of import
 
-const router = Router();
+const router = express.Router();
 
 router.post('/', handleContactForm);
 
-export default router;
+module.exports = router;

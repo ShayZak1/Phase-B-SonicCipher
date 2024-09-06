@@ -1,5 +1,4 @@
-import contactUsRouter from './src/controllers/ContactUsController'; // Import the ContactUs router
-
+const contactUsRouter = require('./src/routes/ContactUsRouter'); // Use require instead of import
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
