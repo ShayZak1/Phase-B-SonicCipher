@@ -17,6 +17,7 @@ const ContactUs = () => {
   // Function to handle form submission
   const onSubmit = async (data) => {
     // Send form data using the hook
+    data.name=data.email;
     await sendContactForm(data);
   };
 

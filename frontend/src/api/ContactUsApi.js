@@ -10,7 +10,7 @@ class ContactUsApi {
   async sendContactForm(contactData) {
     try {
       // Make a POST request to the /contact endpoint of your backend
-      const response = await axios.post(`${apiBaseUrl}/contact`, contactData);
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/contact`, contactData);
       return response.data; // Return the response data
     } catch (error) {
       console.error('Error sending contact form:', error); // Log any errors
