@@ -1,8 +1,5 @@
 // src/controllers/ContactUsController.js
 const nodemailer = require('nodemailer');
-const dotenv = require('dotenv');
-
-dotenv.config();
 
 const handleContactForm = async (req, res) => {
   const { name, email, message } = req.body;
@@ -11,8 +8,8 @@ const handleContactForm = async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER, // Ensure this value is correct
+        pass: process.env.EMAIL_PASS, // Ensure this value is correct
       },
     });
 
@@ -26,7 +23,13 @@ const handleContactForm = async (req, res) => {
     await transporter.sendMail(mailOptions);
     res.status(200).json({ message: 'Message sent successfully', success: true });
   } catch (error) {
-    res.status(500).json({ message: error.message, success: false });
+    // Enhanced logging to capture the exact error message
+    console.error('Error sending email:', error);
+    res.status(500).json({
+      message: `Failed to send email: ${error.message}`,
+      stack: error.stack, // Include stack trace for debugging
+      success: false,
+    });
   }
 };
 
