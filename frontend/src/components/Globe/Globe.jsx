@@ -5,17 +5,17 @@ import { useSpring } from 'react-spring'; // Ensure react-spring is compatible w
 import { cn } from '../../lib/utils'; // Adjust the import path to your utils
 
 const GLOBE_CONFIG = {
-    devicePixelRatio: 2,
-    width: 1000,
-    height: 1000,
-    phi: 0,
-    theta: 0,
-    dark: 1,
-    diffuse: 1.2,
-    scale: 1,
-    mapSamples: 16000,
-    mapBrightness: 1.2,
-  baseColor: [1, 1, 1], 
+  devicePixelRatio: 2,
+  width: 1000,
+  height: 1000,
+  phi: 0,
+  theta: 0,
+  dark: 1,
+  diffuse: 1.2,
+  scale: 1,
+  mapSamples: 16000,
+  mapBrightness: 1.2,
+  baseColor: [1, 1, 1],
   markerColor: [251 / 255, 100 / 255, 21 / 255],
   mapColor: [1, 1, 1],
   glowColor: [1, 1, 1],
@@ -52,7 +52,7 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
   const updatePointerInteraction = (value) => {
     pointerInteracting.current = value;
     if (canvasRef.current) {
-      canvasRef.current.style.cursor = value ? "grabbing" : "grab";
+      canvasRef.current.style.cursor = value ? 'grabbing' : 'grab';
     }
   };
 
@@ -71,7 +71,7 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
       state.width = width * 2;
       state.height = width * 2;
     },
-    [pointerInteracting, phi, r],
+    [pointerInteracting, phi, r]
   );
 
   const onResize = () => {
@@ -81,7 +81,7 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
   };
 
   useEffect(() => {
-    window.addEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
     onResize();
 
     const globe = createGlobe(canvasRef.current, {
@@ -91,17 +91,16 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
       onRender,
     });
 
-    // Ensure the canvas exists before setting its style
     setTimeout(() => {
       if (canvasRef.current) {
-        canvasRef.current.style.opacity = "1";
+        canvasRef.current.style.opacity = '1';
       } else {
-        console.error("Canvas element not found during opacity change");
+        console.error('Canvas element not found during opacity change');
       }
     }, 0);
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener('resize', onResize);
       globe.destroy();
     };
   }, [config, onRender]);
@@ -109,18 +108,18 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
   return (
     <div
       className={cn(
-        "absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[1000px]",
-        className,
+        'absolute inset-0 mx-auto w-full aspect-square max-w-[90vw] max-h-[90vh] sm:max-w-[600px] sm:max-h-[600px] md:max-w-[800px] md:max-h-[800px] lg:max-w-[1000px] lg:max-h-[1000px]',
+        className
       )}
     >
       <canvas
         className={cn(
-          "h-full w-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]",
+          'h-full w-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]'
         )}
         ref={canvasRef}
         onPointerDown={(e) =>
           updatePointerInteraction(
-            e.clientX - pointerInteractionMovement.current,
+            e.clientX - pointerInteractionMovement.current
           )
         }
         onPointerUp={() => updatePointerInteraction(null)}
