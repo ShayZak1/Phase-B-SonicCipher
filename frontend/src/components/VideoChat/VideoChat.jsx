@@ -5,11 +5,15 @@ import axios from 'axios';
 import { peerConfig1 } from '../../config';
 import { languages } from '../../LanguageData';
 import PopupMessage from '../PopupMessage/PopupMessage'; 
+import ShareButton from '../ShareButton/ShareButton'; // Import the new ShareButton component
 
 // Global variables to store language settings
 let globalSourceLang = 'en-GB';
 let globalTargetLang = 'he-IL';
 let globalChangeCount = 0;
+let isRecognitionRunning = false; // Define globally
+let isStopping = false; // New flag to track if recognition is stopping
+let restartAttemptTimeout; // To manage delayed restart attempts
 
 const VideoChat = ({ onClose }) => {
   const [myId, setMyId] = useState('');
@@ -45,29 +49,36 @@ const VideoChat = ({ onClose }) => {
   }, []);
 
 
-  const toggleMute = () => {
-    if (localStreamRef.current) {
-        localStreamRef.current.getAudioTracks().forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        setIsMuted(!isMuted);
+// Function to toggle mute and control subtitle display
+const toggleMute = () => {
+  if (localStreamRef.current) {
+    localStreamRef.current.getAudioTracks().forEach((track) => {
+      track.enabled = !track.enabled; // Toggle audio track enabled state
+    });
 
-        if (!isMuted) {
-            // If unmuting, restart speech recognition
-            if (recognitionRef.current) {
-                console.log('Restarting recognition after unmuting...');
-                recognitionRef.current.stop();
-                setTimeout(() => recognitionRef.current.start(), 500); // Small delay before restarting
-            }
-        } else {
-            // If muting, stop speech recognition
-            if (recognitionRef.current) {
-                console.log('Stopping recognition due to mute...');
-                recognitionRef.current.stop();
-            }
-        }
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+
+    if (!newMutedState && !isRecognitionRunning && recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+        isRecognitionRunning = true; // Update state after starting
+        console.log('Recognition started after unmuting...');
+      } catch (error) {
+        console.error('Error starting recognition after unmute:', error);
+      }
+    } else if (newMutedState && isRecognitionRunning && recognitionRef.current) {
+      try {
+        isStopping = true; // Set stopping state to manage restart attempts
+        recognitionRef.current.stop();
+        isRecognitionRunning = false; // Update state after stopping
+        console.log('Recognition stopped due to mute...');
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+      }
     }
-};
+  }
+}; 
 
 
   // Function to handle language change
@@ -113,6 +124,10 @@ const VideoChat = ({ onClose }) => {
           } else if (data.type === 'transcript') {
             // Directly set the subtitle with the translated text received from the peer
             setSubtitle(data.text);
+          }else if (data.type === 'disconnect') {
+            // Handle the incoming disconnect message
+            console.log('Peer has disconnected');
+            disconnect(); // Clean up and update the state on receiving side
           }
         });
         connection.on('open', () => {
@@ -153,131 +168,222 @@ const VideoChat = ({ onClose }) => {
       console.error('Error translating and sending transcript:', error);
     }
   };
-
   const startRealTimeTranscription = () => {
     if (!('webkitSpeechRecognition' in window)) {
       console.error('Speech recognition not supported in this browser.');
       return;
     }
-
+  
     const recognition = new window.webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = globalSourceLang; // Use the global source language
-
+  
     recognition.onresult = (event) => {
       let interimTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         interimTranscript += event.results[i][0].transcript;
       }
-
-      // Translate the transcript and send it to the peer
       sendTranscriptToPeer(interimTranscript);
     };
-
+  
     recognition.onerror = (event) => {
-      if (event.error === 'no-speech' || event.error === 'network') {
-          console.error('Error: ', event.error);
-          recognitionRef.current.stop();
-          setTimeout(() => {
-              if (!isMuted) {  // Only restart if the mic is not muted
-                  console.log('Restarting speech recognition after error...');
-                  recognitionRef.current.start();
-              }
-          }, 1000);
-      } else {
-          console.error(`Error occurred in recognition: ${event.error}`);
-      }
-  };
+      console.error('Recognition error:', event.error);
   
-  recognition.onend = () => {
-      console.log("Speech recognition ended, checking if restart is needed...");
-      if (!isMuted) {  // Only restart if the mic is not muted
-          setTimeout(() => {
-              console.log('Restarting speech recognition...');
+      if (event.error === 'aborted') {
+        console.log('Recognition aborted; will attempt to restart if running.');
+  
+        // Prevent further restarts during the stop process
+        isStopping = true;
+        clearTimeout(restartAttemptTimeout); // Clear any pending restart attempts
+  
+        // Fully stop recognition before trying to restart
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch (error) {
+            console.warn('Failed to stop recognition:', error);
+          }
+        }
+  
+        // Delay next restart attempt to ensure full stop
+        restartAttemptTimeout = setTimeout(() => {
+          if (isRecognitionRunning && !isMuted && !isStopping) {
+            try {
               recognitionRef.current.start();
-          }, 1000);
+              console.log('Recognition restarted after aborted error.');
+              isRecognitionRunning = true;
+            } catch (error) {
+              console.warn('Failed to restart recognition:', error);
+              isRecognitionRunning = false; // Correct state management
+            }
+          }
+        }, 1000); // Delay to prevent immediate looping restarts
+      } else {
+        // Handle other errors by stopping recognition and setting state to false
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+            isRecognitionRunning = false;
+            console.log('Recognition stopped due to error...');
+          } catch (error) {
+            console.warn('Failed to stop recognition:', error);
+          }
+        }
       }
+    };
+  
+    recognition.onend = () => {
+      console.log('Recognition ended. isRecognitionRunning:', isRecognitionRunning, 'isMuted:', isMuted);
+  
+      // Reset stopping flag after recognition has ended
+      isStopping = false;
+  
+      // Restart recognition only if it was running and not muted
+      if (isRecognitionRunning && !isMuted && !isStopping) {
+        console.log('Attempting to restart recognition...');
+        setTimeout(() => {
+          try {
+            recognitionRef.current.start();
+            isRecognitionRunning = true;
+            console.log('Recognition restarted after ending.');
+          } catch (error) {
+            console.warn('Failed to restart recognition:', error);
+            isRecognitionRunning = false; // Correct state management
+          }
+        }, 500); // Add delay to ensure proper restart
+      } else {
+        console.log('Recognition has stopped due to manual stop or mute; it will not restart.');
+      }
+    };
+  
+    recognitionRef.current = recognition;
+    try {
+      recognitionRef.current.start();
+      isRecognitionRunning = true; // Set running state to true when starting
+      console.log(`Starting transcription with source language: ${recognition.lang}`);
+    } catch (error) {
+      console.error('Error starting recognition:', error);
+    }
   };
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+const connect = (e) => {
+  e.preventDefault();
 
-    recognitionRef.current = recognition;
-    recognition.start();
-    console.log(`Starting real-time transcription with source language: ${recognition.lang}`);
-  };
+  // Ensure the peer object is initialized before connecting
+  if (!peerRef.current || peerRef.current.disconnected || peerRef.current.destroyed) {
+    // If the peer object is not initialized or has been destroyed, reinitialize it
+    peerRef.current = new Peer(undefined, peerConfig1);
 
-  const connect = (e) => {
-    e.preventDefault();
+    // Set up basic event handlers for the newly initialized peer object
+    peerRef.current.on('open', (id) => {
+      setMyId(id);
+      console.log('Peer connection opened with ID:', id);
+    });
 
-    if (!connected) {
-        const connection = peerRef.current.connect(recId);
-        connRef.current = connection;
-        console.log('hello');
-        
-        connection.on('open', () => {
-            setConnected(true);
-            connection.on('data', (data) => {
-                if (data.type === 'message') {
-                    setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
-                } else if (data.type === 'transcript') {
-                    // Display the translated text received from the peer
-                    setSubtitle(data.text);
-                } else if (data.type === 'disconnect') {
-                    // Handle the disconnect message from the peer
-                    console.log('Peer has disconnected');
-                    disconnect(); // Automatically disconnect the other peer
-                }
-            });
+    peerRef.current.on('error', (err) => {
+      console.error('Peer error:', err);
+      disconnect(); // Ensure proper cleanup on errors
+    });
+  }
 
-            const call = peerRef.current.call(recId, localStreamRef.current);
-            callRef.current = call;
+  // Proceed with connection only if peerRef.current is properly initialized
+  if (!connected) {
+    try {
+      const connection = peerRef.current.connect(recId);
+      connRef.current = connection;
+      console.log('Attempting to connect to peer with ID:', recId);
 
-            call.on('stream', (remoteStream) => {
-                remoteVideoRef.current.srcObject = remoteStream;
-            });
+      // Set up event handlers for the connection
+      connection.on('open', () => {
+        setConnected(true);
+        console.log('Connection opened with peer:', recId);
 
-            startRealTimeTranscription(); // Start transcription after connection
+        connection.on('data', (data) => {
+          if (data.type === 'message') {
+            setMessages((msgs) => [...msgs, { text: data.text, isMine: false }]);
+          } else if (data.type === 'transcript') {
+            setSubtitle(data.text); // Display the translated text received from the peer
+          } else if (data.type === 'disconnect') {
+            console.log('Peer has disconnected');
+            disconnect(); // Handle the disconnect message from the peer
+          }
         });
 
-        connection.on('error', (err) => {
-            console.error('Connection error:', err);
+        // Make a call to the peer
+        const call = peerRef.current.call(recId, localStreamRef.current);
+        callRef.current = call;
+
+        call.on('stream', (remoteStream) => {
+          remoteVideoRef.current.srcObject = remoteStream; // Set the remote video stream
         });
-    } else {
-        disconnect();
+
+        startRealTimeTranscription(); // Start transcription after the connection is established
+      });
+
+      connection.on('error', (err) => {
+        console.error('Connection error:', err);
+        disconnect(); // Handle connection errors by disconnecting safely
+      });
+    } catch (error) {
+      console.error('Error during connection attempt:', error);
+      disconnect();
     }
+  } else {
+    disconnect(); // Handle disconnection if already connected
+  }
 };
 
 
+
 const disconnect = () => {
+  // Notify the other peer if connected
   if (connRef.current && connRef.current.open) {
-      connRef.current.send({ type: 'disconnect' }); // Notify the other peer
+    connRef.current.send({ type: 'disconnect' }); // Notify the peer of the disconnection
   }
 
+  // Close the call and peer connection safely
   if (callRef.current) callRef.current.close();
   if (connRef.current) connRef.current.close();
   if (peerRef.current) peerRef.current.destroy();
 
+  // Stop local and remote streams
   if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
+    localStreamRef.current.getTracks().forEach((track) => track.stop());
+    localStreamRef.current = null;
   }
-
   if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
-      remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      remoteVideoRef.current.srcObject = null;
+    remoteVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+    remoteVideoRef.current.srcObject = null;
   }
 
+  // Safely stop speech recognition
   if (recognitionRef.current) {
-      recognitionRef.current.onend = null; // Prevent auto-restart on 'end'
-      recognitionRef.current.stop();       // Stop the recognition
-      recognitionRef.current = null;       // Clear the reference
+    recognitionRef.current.onend = null; // Prevent restarting on end event
+    try {
+      recognitionRef.current.stop();
+    } catch (error) {
+      console.warn('Error stopping recognition:', error);
+    }
+    recognitionRef.current = null;
   }
 
+  // Update state to reflect disconnection
   setConnected(false);
   setRecId('');
   localVideoRef.current.srcObject = null;
   remoteVideoRef.current.srcObject = null;
 };
+
 
 
 
@@ -331,17 +437,23 @@ const disconnect = () => {
 
       <h1 className="text-3xl text-center py-4">Communicator</h1>
       <form onSubmit={connect}>
-        <div className="mb-4">
-          <label htmlFor="myId" className="block text-sm font-medium text-gray-300">My Nickname</label>
+<div className="mb-4 relative">
+        <label htmlFor="myId" className="block text-sm font-medium text-gray-300">My Nickname</label>
+        <div className="relative flex items-center">
           <input
             type="text"
             id="myId"
-            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200"
+            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200 pr-10"
             value={myId}
             readOnly
             onClick={(e) => e.target.select()}
           />
+          {/* Position the ShareButton inside the text box */}
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+            <ShareButton code={myId} /> {/* This is where the ShareButton is placed */}
+          </div>
         </div>
+      </div>
         <div className="mb-4">
           <label htmlFor="recId" className="block text-sm font-medium text-gray-300">Recipient</label>
           <input
