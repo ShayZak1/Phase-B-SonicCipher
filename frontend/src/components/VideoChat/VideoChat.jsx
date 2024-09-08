@@ -47,7 +47,14 @@ const VideoChat = ({ onClose }) => {
       document.body.removeChild(script);
     };
   }, []);
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search); // Parse URL query parameters
+    const peerId = urlParams.get('peerId'); // Get the value of the `peerId` parameter
 
+    if (peerId) {
+      setRecId(peerId); // Automatically fill the Recipient input box with the peerId
+    }
+  }, []);
 
 // Function to toggle mute and control subtitle display
 const toggleMute = () => {
