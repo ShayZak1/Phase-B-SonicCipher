@@ -74,17 +74,21 @@ app.post('/speech-to-text', async (req, res) => {
   }
 });
 
+// Backend: text-to-speech route modification
 app.post('/text-to-speech', async (req, res) => {
-  const { text, languageCode } = req.body;
+  const { text, languageCode, voice } = req.body;
+  const ssmlGender = voice === 'male' ? 'MALE' : 'FEMALE';
 
-  if (!text || !languageCode) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+  // Log received data
+  console.log('Received text:', text);
+  console.log('Language code:', languageCode);
+  console.log('Requested voice:', voice);
+  console.log('SSML Gender used:', ssmlGender);
 
   try {
     const response = await axios.post(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${TEXT_TO_SPEECH_API_KEY}`, {
       input: { text },
-      voice: { languageCode, ssmlGender: 'NEUTRAL' },
+      voice: { languageCode, ssmlGender },
       audioConfig: { audioEncoding: 'MP3' }
     });
 
@@ -94,6 +98,7 @@ app.post('/text-to-speech', async (req, res) => {
     res.status(500).json({ error: 'Failed to convert text to speech', details: error.message });
   }
 });
+
 
 // New OpenAI Translation Route using v1/chat/completions
 app.post('/openai-translate', async (req, res) => {
