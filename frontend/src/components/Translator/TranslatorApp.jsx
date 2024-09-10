@@ -10,6 +10,7 @@ import { languages } from '../../LanguageData';
 import ShareButton from '../ShareButton/ShareButton';
 import TranslationHistory from './TranslationHistory';
 import SettingsCog from './SettingsCog';
+import { ShimmerButton } from '../ShimmerButton/ShimmerButton';
 
 const TranslatorApp = ({ onClose }) => {
   const {
@@ -22,6 +23,12 @@ const TranslatorApp = ({ onClose }) => {
     handleMaxChar, handleLanguageClick, handleLanguageSelect, handleSwapLanguage,
     history: translationHistory, handleSaveTranslation
   } = useTranslator();
+
+  const handlePlanChange = (selectedPlan) => {
+    if (plan !== selectedPlan) {
+      setPlan(selectedPlan);
+    }
+  };
 
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
   const [voiceGender, setVoiceGender] = useState('female');
@@ -36,9 +43,16 @@ const TranslatorApp = ({ onClose }) => {
 
   const handleTranslate = () => {
     if (plan === 'Free') {
-      translateText({ inputText, sourceLang, targetLang, plan, setTranslatedText, convertTextToSpeech: (text, lang) => convertTextToSpeech(text, lang, setAudioUrl, voiceGender) });
+      translateText({
+        inputText,
+        sourceLang,
+        targetLang,
+        plan,
+        setTranslatedText,
+        convertTextToSpeech: (text, lang) => convertTextToSpeech(text, lang, setAudioUrl, voiceGender)
+      });
     } else if (plan === 'Premium') {
-      setTriggerTranslate(true); // Trigger translation in PremiumTranslator
+      setTriggerTranslate(true);
     }
   };
 
@@ -52,7 +66,9 @@ const TranslatorApp = ({ onClose }) => {
   };
 
   const handleStartRecording = () => {
-    setInputText(""); setCharCount(0); setTranslatedText("");
+    setInputText("");
+    setCharCount(0);
+    setTranslatedText("");
   };
 
   const handleStopRecording = () => {
@@ -70,6 +86,11 @@ const TranslatorApp = ({ onClose }) => {
     if (inputText && translatedText) handleSaveTranslation(inputText, translatedText);
   }, [translatedText]);
 
+  useEffect(() => {
+    if (triggerTranslate) {
+      setTriggerTranslate(false); // Reset trigger after use
+    }
+  }, [triggerTranslate, translatedText]);
   return (
     <div className="w-full h-full max-h-screen flex flex-col gap-4 justify-center items-center px-6 sm:px-2 pt-12 pb-6 relative overflow-hidden translator-upbg">
       <div className="absolute top-4 left-4 flex gap-2">
@@ -83,8 +104,22 @@ const TranslatorApp = ({ onClose }) => {
         </button>
       </div>
       <div className="flex justify-center gap-4 my-4">
-        <button className={`px-4 py-2 w-32 rounded ${plan === "Free" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"}`} onClick={() => setPlan("Free")}>Free</button>
-        <button className={`px-4 py-2 w-32 rounded ${plan === "Premium" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"}`} onClick={() => setPlan("Premium")}>Premium</button>
+      <ShimmerButton
+          buttonColor="#3b82f6"
+          buttonTextColor="#1f2937"
+          isActive={plan === "Free"} // Mark active if the plan is Free
+          initialText="Free"
+          changeText="Free"
+          onClick={() => handlePlanChange("Free")}
+        />
+        <ShimmerButton
+          buttonColor="#3b82f6"
+          buttonTextColor="#1f2937"
+          isActive={plan === "Premium"} // Mark active if the plan is Premium
+          initialText="Premium"
+          changeText="Premium"
+          onClick={() => handlePlanChange("Premium")}
+        />
       </div>
       <LanguageSelector sourceLang={sourceLang} targetLang={targetLang} handleLanguageClick={handleLanguageClick} handleSwapLanguage={handleSwapLanguage} />
       {showLanguages && (
@@ -110,9 +145,9 @@ const TranslatorApp = ({ onClose }) => {
           triggerTranslate={triggerTranslate}
         />
       )}
-      <div className="flex justify-center items-center gap-4 mt-4">
-        <MicRecord onTranscript={handleTranscript} sourceLang={sourceLang} onStartRecording={handleStartRecording} onStopRecording={handleStopRecording} />
-        <button className="w-12 h-12 bg-gradient-to-r from-[#b6f492] to-[#338b93] rounded-full text-2xl text-gray-600 flex justify-center items-center active:translate-y-[1px]" onClick={handleTranslate}>
+  <div className="w-full flex justify-center items-center gap-2 bg-[#3A3F44] bg-opacity-30 px-4 py-2 rounded-lg shadow-md">
+  <MicRecord onTranscript={handleTranscript} sourceLang={sourceLang} onStartRecording={handleStartRecording} onStopRecording={handleStopRecording} />
+        <button className="w-12 h-12 bg-gradient-to-r from-[#4A90E2] to-[#50B3A2] rounded-full text-2xl text-gray-600 flex justify-center items-center active:translate-y-[1px]" onClick={handleTranslate}>
           <i className="fa-solid fa-chevron-down"></i>
         </button>
         <SettingsCog voiceGender={voiceGender} onVoiceSelection={setVoiceGender} />

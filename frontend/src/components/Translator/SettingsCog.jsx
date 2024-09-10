@@ -11,7 +11,7 @@ const SettingsCog = ({ voiceGender, onVoiceSelection }) => {
   return (
     <div className="relative">
       <button
-        className="w-12 h-12 bg-gradient-to-r from-[#ffcd38] to-[#ff9a00] rounded-full text-2xl text-gray-600 flex justify-center items-center active:translate-y-[1px]"
+        className="w-12 h-12 bg-gradient-to-r from-[#4A90E2] to-[#50B3A2] rounded-full text-2xl text-gray-600 flex justify-center items-center active:translate-y-[1px]"
         onClick={toggleSettings}
         aria-label="Settings"
       >

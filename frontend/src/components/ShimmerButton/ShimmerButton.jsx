@@ -1,78 +1,54 @@
-import React, { CSSProperties } from "react";
-import { cn } from "../../lib/utils"; // Adjust the import path based on your project structure
+// ShimmerButton.jsx
+import React from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
-const ShimmerButton = React.forwardRef(
-  (
-    {
-      shimmerColor = "#ffffff",
-      shimmerSize = "0.05em",
-      shimmerDuration = "3s",
-      borderRadius = "100px",
-      background = "rgba(0, 0, 0, 1)",
-      className,
-      children,
-      ...props
-    },
-    ref
-  ) => {
-    return (
-      <button
-        style={{
-          "--spread": "90deg",
-          "--shimmer-color": shimmerColor,
-          "--radius": borderRadius,
-          "--speed": shimmerDuration,
-          "--cut": shimmerSize,
-          "--bg": background,
-        }}
-        className={cn(
-          "group relative z-0 flex cursor-pointer items-center justify-center overflow-hidden whitespace-nowrap border border-white/10 px-6 py-3 text-white [background:var(--bg)] [border-radius:var(--radius)]",
-          "transform-gpu transition-transform duration-300 ease-in-out active:translate-y-[1px]",
-          className
-        )}
-        ref={ref}
-        {...props}
-      >
-        {/* spark container */}
-        <div
-          className={cn(
-            "-z-30 blur-[2px]",
-            "absolute inset-0 overflow-visible [container-type:size]"
-          )}
+export const ShimmerButton = ({
+  buttonTextColor,
+  isActive,
+  initialText,
+  changeText,
+  onClick,
+}) => {
+  return (
+    <AnimatePresence mode="wait">
+      {isActive ? (
+        <motion.button
+          className="relative flex w-[200px] items-center justify-center overflow-hidden rounded-md p-[10px] bg-gradient-to-r from-[#4A90E2] to-[#50B3A2] outline outline-1 outline-black"
+          onClick={onClick}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         >
-          {/* spark */}
-          <div className="absolute inset-0 h-[100cqh] animate-slide [aspect-ratio:1] [border-radius:0] [mask:none]">
-            {/* spark before */}
-            <div className="animate-spin-around absolute inset-[-100%] w-auto rotate-0 [background:conic-gradient(from_calc(270deg-(var(--spread)*0.5)),transparent_0,var(--shimmer-color)_var(--spread),transparent_var(--spread))] [translate:0_0]" />
-          </div>
-        </div>
-        {children}
-
-        {/* Highlight */}
-        <div
-          className={cn(
-            "insert-0 absolute h-full w-full",
-            "rounded-2xl px-4 py-1.5 text-sm font-medium shadow-[inset_0_-8px_10px_#ffffff1f]",
-            // transition
-            "transform-gpu transition-all duration-300 ease-in-out",
-            // on hover
-            "group-hover:shadow-[inset_0_-6px_10px_#ffffff3f]",
-            // on click
-            "group-active:shadow-[inset_0_-10px_10px_#ffffff3f]"
-          )}
-        />
-
-        {/* backdrop */}
-        <div
-          className={cn(
-            "absolute -z-20 [background:var(--bg)] [border-radius:var(--radius)] [inset:var(--cut)]"
-          )}
-        />
-      </button>
-    );
-  }
-);
-
-ShimmerButton.displayName = "ShimmerButton";
-
-export default ShimmerButton;
+          <motion.span
+            key="action"
+            className="relative flex items-center gap-2 font-semibold"
+            initial={{ y: -50 }}
+            animate={{ y: 0 }}
+            style={{ color: buttonTextColor || "#ffffff" }}
+          >
+            <span className="text-white">✔</span> {/* Checkmark */}
+            {changeText}
+          </motion.span>
+        </motion.button>
+      ) : (
+        <motion.button
+          className="relative flex w-[200px] cursor-pointer items-center justify-center rounded-md border-none p-[10px]"
+          style={{ backgroundColor: "#e5e7eb", color: buttonTextColor || "#1f2937" }}
+          onClick={onClick}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.span
+            key="reaction"
+            className="relative block font-semibold"
+            initial={{ x: 0 }}
+            exit={{ x: 50, transition: { duration: 0.1 } }}
+          >
+            {initialText}
+          </motion.span>
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
+};

@@ -202,7 +202,7 @@ const MicRecord = ({ onTranscript, sourceLang, onStartRecording, onStopRecording
       <div className="flex flex-row items-center">
         <button
           onClick={isRecording ? stopRecording : startRecording}
-          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full ${isRecording ? 'bg-red-500' : ''}`}
+          className={`bg-gradient-to-r from-[#4A90E2] to-[#50B3A2] hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full ${isRecording ? 'bg-red-500' : ''}`}
         >
           <i className={`fa-solid ${isRecording ? 'fa-microphone-slash' : 'fa-microphone'} text-2xl`} />
         </button>
