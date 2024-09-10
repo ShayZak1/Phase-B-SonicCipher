@@ -1,22 +1,21 @@
 // ShareButton.jsx
 import { h } from 'preact';
 
-const ShareButton = ({ code }) => {
-  // Generate the share URL with the correct path to the video chat page
-  const shareUrl = `${window.location.origin}/videochat?peerId=${encodeURIComponent(code)}`;
+const ShareButton = ({ code, isTranslatorApp = false }) => {
+  // Determine the share content based on the context
+  const shareUrl = isTranslatorApp ? code : `${window.location.origin}/videochat?peerId=${encodeURIComponent(code)}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl);
-    alert('URL copied to clipboard! You can share it.');
+    alert('Copied to clipboard! You can share it.');
   };
 
   const handleNativeShare = () => {
-    if (navigator.share) {
+    if (!isTranslatorApp && navigator.share) {
       navigator
         .share({
           title: 'Join me on the video chat',
-          // Combine both the message and the URL into the `text` field only
-          text: `Use this link to connect with me:\n${shareUrl}`, 
+          text: `Use this link to connect with me:\n${shareUrl}`,
         })
         .catch((error) => console.error('Error sharing:', error));
     } else {
@@ -35,14 +34,16 @@ const ShareButton = ({ code }) => {
         <i className="fa fa-copy" aria-hidden="true"></i>
       </button>
 
-      {/* Share Icon */}
-      <button
-        className="text-white p-2 rounded-md hover:bg-blue-700"
-        onClick={handleNativeShare}
-        aria-label="Share URL"
-      >
-        <i className="fa fa-share-alt" aria-hidden="true"></i>
-      </button>
+      {/* Share Icon - only show if not in TranslatorApp */}
+      {!isTranslatorApp && (
+        <button
+          className="text-white p-2 rounded-md hover:bg-blue-700"
+          onClick={handleNativeShare}
+          aria-label="Share URL"
+        >
+          <i className="fa fa-share-alt" aria-hidden="true"></i>
+        </button>
+      )}
     </div>
   );
 };

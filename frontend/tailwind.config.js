@@ -1,3 +1,4 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -13,7 +14,8 @@ module.exports = {
       animation: {
         "spin-around": "spin-around calc(var(--speed) * 2) infinite linear",
         slide: "slide var(--speed) ease-in-out infinite alternate",
-        ripple: "ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite", // Add ripple animation here
+        ripple: "ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite",
+        waveMove: "waveMove 2s linear infinite", // Add the waveform animation here
       },
       keyframes: {
         "spin-around": {
@@ -41,6 +43,14 @@ module.exports = {
           },
           "50%": {
             transform: "translate(-50%, -50%) scale(0.9)",
+          },
+        },
+        waveMove: { // Define the keyframes for the waveform animation
+          "0%": {
+            backgroundPosition: "0 0",
+          },
+          "100%": {
+            backgroundPosition: "100% 0",
           },
         },
       },

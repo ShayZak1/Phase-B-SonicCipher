@@ -10,6 +10,7 @@ export const useTranslator = () => {
   const [currentLanguageSelection, setCurrentLanguageSelection] = useState(null);
   const [audioUrl, setAudioUrl] = useState('');
   const [plan, setPlan] = useState("Free");
+  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('translationHistory')) || []);
   const dropdownRef = useRef(null);
   const textareaRef = useRef(null);
   const audioRef = useRef(null);
@@ -57,13 +58,22 @@ export const useTranslator = () => {
     setTargetLang(sourceLang);
   };
 
+  // Function to save the current translation to history
+  const handleSaveTranslation = (original, translated) => {
+    const newHistory = [{ original, translated, timestamp: new Date() }, ...history];
+    setHistory(newHistory);
+    localStorage.setItem('translationHistory', JSON.stringify(newHistory));
+  };
+
   return {
     inputText, setInputText, translatedText, setTranslatedText,
     sourceLang, setSourceLang, targetLang, setTargetLang,
     showLanguages, setShowLanguages, charCount, setCharCount,
     currentLanguageSelection, setCurrentLanguageSelection,
     audioUrl, setAudioUrl, plan, setPlan,
+    history, handleSaveTranslation,
     dropdownRef, textareaRef, audioRef,
-    handleMaxChar, handleLanguageClick, handleLanguageSelect, handleSwapLanguage
+    handleMaxChar, handleClickOutside,
+    handleLanguageClick, handleLanguageSelect, handleSwapLanguage
   };
 };
