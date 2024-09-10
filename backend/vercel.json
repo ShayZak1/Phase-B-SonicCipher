@@ -4,6 +4,7 @@
     {
       "src": "./app.js",
       "use": "@vercel/node"
+
     }
   ],
   "routes": [
@@ -11,6 +12,5 @@
       "src": "/(.*)",
       "dest": "/app.js"
     }
-  ],
-  "buildCommand": "npm ci --legacy-peer-deps && npm run build"
+  ]
 }
