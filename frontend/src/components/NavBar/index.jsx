@@ -33,8 +33,13 @@ const NavBar = ({ onStart, onStartVideoChat }) => {
 
     return (
         <nav className="sticky top-0 left-0 bg-navBg z-50">
-            <div className="max-w-screen-xl text-white flex justify-between items-center h-24 m-auto px-4">
-                <h3 className="w-full text-3xl font-bold text-mainColor">Sonic<span className="text-white">C</span>ipher</h3>
+              <div className="max-w-screen-xl text-white flex justify-between items-center h-24 m-auto px-4">
+            {/* Replace the heading with the logo image */}
+            <img 
+                src="/Soniccipherlogo1.png"
+                alt="Sonic Cipher Logo" 
+                className="h-16 w-auto object-contain" 
+            />
                 <ul className='hidden md:flex'>
                     <NavLinks links={navLinks} onStartVideoChat={onStartVideoChat} />
                 </ul>
