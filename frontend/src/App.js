@@ -22,14 +22,7 @@ const App = () => {
     window.location.href = path; // Forces full page reload
   };
 
-  useEffect(() => {
-    // Ensure the video element is not null before accessing its style
-    if (videoRef.current) {
-      videoRef.current.style.filter = 'brightness(70%) blur(5px)';
-    } else {
-      console.error('Video element is not yet available');
-    }
-  }, [currentPage]); // Re-run when currentPage changes
+
 
   return (
     <div className="relative w-full h-screen">

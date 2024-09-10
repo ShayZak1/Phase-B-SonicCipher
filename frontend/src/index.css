@@ -36,7 +36,7 @@ body {
   }
 
   .translator-bg {
-    @apply relative w-full h-screen;
+    @apply bg-gray-800 bg-opacity-70 relative w-full h-screen;
   }
 
   #bg-video {
