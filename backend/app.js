@@ -76,18 +76,22 @@ app.post('/speech-to-text', async (req, res) => {
 
 // Backend: text-to-speech route modification
 app.post('/text-to-speech', async (req, res) => {
-  const { text, languageCode, voice } = req.body;
+  const { text, ssml, languageCode, voice } = req.body;
   const ssmlGender = voice === 'male' ? 'MALE' : 'FEMALE';
 
   // Log received data
   console.log('Received text:', text);
+  console.log('Received SSML:', ssml);
   console.log('Language code:', languageCode);
   console.log('Requested voice:', voice);
   console.log('SSML Gender used:', ssmlGender);
 
   try {
+    // Determine whether to use SSML or plain text
+    const input = ssml ? { ssml } : { text };
+
     const response = await axios.post(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${TEXT_TO_SPEECH_API_KEY}`, {
-      input: { text },
+      input, // Send either SSML or plain text
       voice: { languageCode, ssmlGender },
       audioConfig: { audioEncoding: 'MP3' }
     });
