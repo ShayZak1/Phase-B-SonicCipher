@@ -123,9 +123,15 @@ app.post('/openai-translate', async (req, res) => {
   // Combine the received specifications into the translation prompt
   const prompt = `You are an expert translator specializing in translating text from ${source} to ${target}. Please provide a translation that accurately reflects the original meaning with the following specifications:
 
-  - Tone: ${tone || 'neutral'} (make sure it sounds ${tone === 'friendly' ? 'approachable and warm' : tone === 'professional' ? 'respectful and serious' : 'neutral'}).
-  - Formality: ${formality || 'formal'} (ensure that the language remains ${formality === 'informal' ? 'casual and relaxed' : 'formal and suitable for business contexts'}).
+  - Tone: ${tone || 'neutral'} (ensure the translation maintains a polite, straightforward tone suitable for formal communication).
+  - Formality: ${formality || 'formal'} (language should remain professional and respectful, using plural forms when appropriate).
+  - Preferred Phrasing Style: When translating instructions or requests, use phrasing that sounds slightly more indirect and polite. For example, prefer "עברו על" instead of "סקור" and similar polite variations over more direct instructions.
+  - Additional Context: Avoid overly instructional or commanding language; maintain a respectful tone as if addressing a professional audience.
   - Additional specifications: ${additionalText || 'none'}
+  
+  Here are some example translations to guide the style:
+  1. English: "Please review the attached document." -> Hebrew: "אנא עברו על המסמך המצורף."
+  2. English: "Ensure the task is completed by the end of the week." -> Hebrew: "ודאו שהמשימה תושלם עד סוף השבוע."
   
   Now translate the following text:
   "${q}"`;
