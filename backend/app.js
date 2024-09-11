@@ -104,15 +104,24 @@ app.post('/text-to-speech', async (req, res) => {
 app.post('/openai-translate', async (req, res) => {
   const { q, source, target, format, additionalText, tone, formality } = req.body;
 
-  // Check for missing required fields
+  // Log the incoming request data to check if specifications are received correctly
+  console.log('Received translation request:', {
+    q,
+    source,
+    target,
+    format,
+    additionalText,
+    tone,
+    formality,
+  });
+
   if (!q || !source || !target || !format) {
-    console.log('Missing required fields'); 
+    console.log('Missing required fields');
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  try {
-    // Build the prompt using the received profile settings
-    const prompt = `You are an expert translator specializing in translating text from ${source} to ${target}. Provide a translation that accurately reflects the original meaning with the following specifications:
+  // Combine the received specifications into the translation prompt
+  const prompt = `You are an expert translator specializing in translating text from ${source} to ${target}. Please provide a translation that accurately reflects the original meaning with the following specifications:
 
     - Tone: ${tone || 'neutral'}
     - Formality: ${formality || 'formal'}
@@ -121,37 +130,55 @@ app.post('/openai-translate', async (req, res) => {
     Now translate the following text:
     "${q}"`;
 
-    console.log('Generated prompt:', prompt); // Log the generated prompt
+  // Log the generated prompt to verify how the specifications are used
+  console.log('Generated prompt with combined specifications:', prompt);
 
+  try {
     // Make the API request to OpenAI using the customized prompt
-    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a translation assistant. Only provide the translation as instructed, without adding extra notes or explanations.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      max_tokens: 1000,
-    }, {
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a translation assistant. Only provide the translation as instructed, without adding extra notes or explanations.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 1000,
       },
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-    // Extract the translated text from the API response
+    // Log the API response to verify the translation result
     const translatedText = response.data.choices[0].message.content.trim();
-    console.log('Translated text:', translatedText); 
+    console.log('Translated text:', translatedText);
 
     // Send the translated text back to the frontend
     res.json({ data: { translations: [{ translatedText }] } });
   } catch (error) {
+    // Log error details for troubleshooting
     console.error('Error translating text with OpenAI:', error);
-    res.status(500).json({ error: 'Failed to translate text with OpenAI', details: error.response ? error.response.data : error.message });
+    console.error(
+      'Error details:',
+      error.response ? error.response.data : error.message
+    );
+    res
+      .status(500)
+      .json({
+        error: 'Failed to translate text with OpenAI',
+        details: error.response ? error.response.data : error.message,
+      });
   }
 });
+
 
 
 

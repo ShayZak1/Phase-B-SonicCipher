@@ -83,7 +83,7 @@ const TranslationProfileManager = ({ onApplyProfile }) => {
 
       {/* Additional Specifications Input */}
       <textarea
-        placeholder="Additional specifications for translation"
+        placeholder="Additional user specifications (male,female...)"
         value={currentSettings.additionalText}
         onChange={(e) => handleSettingChange("additionalText", e.target.value)}
         className="w-full p-2 mb-2 border rounded h-20"

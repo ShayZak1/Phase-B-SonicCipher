@@ -9,11 +9,9 @@ const PremiumTranslator = ({
   onTranslate,
   convertTextToSpeech,
   triggerTranslate,
-  profileSettings, // New prop to accept profile settings
+  profileSettings, // Prop to get profile settings from the parent component
 }) => {
-  const [additionalText, setAdditionalText] = useState(
-    profileSettings?.additionalText || ""
-  ); // Initialize with profile additionalText if available
+  const [additionalText, setAdditionalText] = useState("");
 
   const handleAdditionalTextChange = (e) => {
     setAdditionalText(e.target.value);
@@ -21,8 +19,14 @@ const PremiumTranslator = ({
 
   const translateText = async () => {
     if (!triggerTranslate) return;
+
+    // Combine additional specifications from profile and the current textarea
+    const combinedAdditionalText = `${
+      profileSettings?.additionalText || ""
+    } ${additionalText}`.trim();
+
     try {
-      // Prepare the data to send to the backend, including profile settings
+      // Send the combined specifications to the backend
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/openai-translate`,
         {
@@ -30,16 +34,15 @@ const PremiumTranslator = ({
           source: sourceLang,
           target: targetLang,
           format: "text",
-          additionalText: additionalText, // Include additional text entered by the user
-          tone: profileSettings?.tone || "neutral", // Include tone from profile settings
-          formality: profileSettings?.formality || "formal", // Include formality from profile settings
+          additionalText: combinedAdditionalText, // Send combined additional text
+          tone: profileSettings?.tone || "neutral",
+          formality: profileSettings?.formality || "formal",
         }
       );
 
-      // Extract the translated text from the response
       const translated = response.data.data.translations[0].translatedText;
-      onTranslate(translated); // Pass the translated text to the parent
-      convertTextToSpeech(translated, targetLang); // Convert the translated text to speech
+      onTranslate(translated);
+      convertTextToSpeech(translated, targetLang);
     } catch (error) {
       console.error("Error translating text:", error);
     }
