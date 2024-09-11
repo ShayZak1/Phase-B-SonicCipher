@@ -190,10 +190,45 @@ app.post('/openai-translate', async (req, res) => {
   }
 });
 
+app.post('/generate-suggestions', async (req, res) => {
+  const { text } = req.body;
 
+  // Log incoming request
+  console.log('Generating suggestions for:', text);
 
+  try {
+    const prompt = `The following sentence has been translated, but could be rephrased to sound more fluent or engaging for the intended audience. Provide three alternative suggestions that maintain the meaning but adjust the tone and phrasing:
 
+Original: "${text}"
 
+Suggestions:`;
+
+    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: 'You are an assistant that provides alternative phrasings for translations, enhancing fluency and alignment with audience expectations.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 150,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // Extract suggestions from the response
+    const suggestions = response.data.choices[0].message.content.trim().split('\n');
+
+    // Log suggestions
+    console.log('Generated suggestions:', suggestions);
+
+    res.json({ suggestions });
+  } catch (error) {
+    console.error('Error generating suggestions:', error);
+    res.status(500).json({ error: 'Failed to generate suggestions', details: error.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

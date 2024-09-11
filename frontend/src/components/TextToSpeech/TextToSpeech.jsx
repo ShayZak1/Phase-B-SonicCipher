@@ -1,10 +1,8 @@
-// src/components/TextToSpeech.jsx
-
 import { h } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks";
 import { FaPlay, FaPause } from "react-icons/fa";
 import { convertTextToSpeech } from "../../api/TextToSpeechApi";
-import Waveform from "../MicRecord/Waveform"; // Import the Waveform component
+import Waveform from "../MicRecord/Waveform";
 
 const TextToSpeech = ({ text, languageCode, voiceGender }) => {
   const [audioUrl, setAudioUrl] = useState("");
@@ -28,7 +26,6 @@ const TextToSpeech = ({ text, languageCode, voiceGender }) => {
         setLoading(false);
       }
     };
-
     fetchAudio();
   }, [text, languageCode, voiceGender]);
 
@@ -46,34 +43,18 @@ const TextToSpeech = ({ text, languageCode, voiceGender }) => {
     if (audioUrl && audioRef.current) {
       audioRef.current
         .play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch((error) => {
-          console.error("Error playing audio automatically:", error);
-          setIsPlaying(false);
-        });
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
     }
   }, [audioUrl]);
 
   useEffect(() => {
     const audioElement = audioRef.current;
-
     if (!audioElement) return;
-
-    // Define the handler for when the audio playback ends
-    const handleEnded = () => {
-      setIsPlaying(false); // Set isPlaying to false when audio finishes playing
-    };
-
-    // Attach the ended event listener to the audio element
+    const handleEnded = () => setIsPlaying(false);
     audioElement.addEventListener("ended", handleEnded);
-
-    // Cleanup the event listener when component unmounts or ref changes
-    return () => {
-      audioElement.removeEventListener("ended", handleEnded);
-    };
-  }, [audioRef, isPlaying]); // Include isPlaying to ensure updates trigger correctly
+    return () => audioElement.removeEventListener("ended", handleEnded);
+  }, [audioRef, isPlaying]);
 
   return (
     <div className="text-to-speech flex flex-col items-center">
@@ -84,7 +65,6 @@ const TextToSpeech = ({ text, languageCode, voiceGender }) => {
             onClick={togglePlay}
             className="relative flex items-center bg-[#2d2d2d] rounded-full w-56 p-2 shadow-md overflow-hidden transition duration-300 hover:bg-opacity-80"
           >
-            {/* Play/Pause Button with correct styling */}
             <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-[#4A90E2] to-[#50B3A2] rounded-full mr-2">
               {isPlaying ? (
                 <FaPause className="text-white" />
@@ -92,8 +72,6 @@ const TextToSpeech = ({ text, languageCode, voiceGender }) => {
                 <FaPlay className="text-white" />
               )}
             </div>
-
-            {/* Ensure the waveform does not overflow */}
             <Waveform
               audioRef={audioRef}
               isActive={isPlaying}
