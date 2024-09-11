@@ -1,8 +1,8 @@
-import { h } from 'preact';
-import { useCallback, useEffect, useRef } from 'preact/hooks';
-import createGlobe from 'cobe'; // Importing as default
-import { useSpring } from 'react-spring'; // Ensure react-spring is compatible with Preact
-import { cn } from '../../lib/utils'; // Adjust the import path to your utils
+import { h } from "preact";
+import { useCallback, useEffect, useRef } from "preact/hooks";
+import createGlobe from "cobe"; // Importing as default
+import { useSpring } from "react-spring"; // Ensure react-spring is compatible with Preact
+import { cn } from "../../lib/utils"; // Adjust the import path to your utils
 
 const GLOBE_CONFIG = {
   devicePixelRatio: 2,
@@ -52,7 +52,7 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
   const updatePointerInteraction = (value) => {
     pointerInteracting.current = value;
     if (canvasRef.current) {
-      canvasRef.current.style.cursor = value ? 'grabbing' : 'grab';
+      canvasRef.current.style.cursor = value ? "grabbing" : "grab";
     }
   };
 
@@ -81,7 +81,7 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
   };
 
   useEffect(() => {
-    window.addEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
     onResize();
 
     const globe = createGlobe(canvasRef.current, {
@@ -91,16 +91,20 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
       onRender,
     });
 
-    setTimeout(() => {
+    // Use requestAnimationFrame to ensure the canvas is ready for manipulation
+    const updateCanvasOpacity = () => {
       if (canvasRef.current) {
-        canvasRef.current.style.opacity = '1';
+        canvasRef.current.style.opacity = "1";
       } else {
-        console.error('Canvas element not found during opacity change');
+        console.warn("Canvas element not found during opacity change");
       }
-    }, 0);
+    };
+
+    // Requesting the next animation frame to make sure the DOM is fully updated
+    requestAnimationFrame(updateCanvasOpacity);
 
     return () => {
-      window.removeEventListener('resize', onResize);
+      window.removeEventListener("resize", onResize);
       globe.destroy();
     };
   }, [config, onRender]);
@@ -108,13 +112,13 @@ export default function Globe({ className, config = GLOBE_CONFIG }) {
   return (
     <div
       className={cn(
-        'absolute inset-0 mx-auto w-full aspect-square max-w-[90vw] max-h-[90vh] sm:max-w-[600px] sm:max-h-[600px] md:max-w-[800px] md:max-h-[800px] lg:max-w-[1000px] lg:max-h-[1000px]',
+        "absolute inset-0 mx-auto w-full aspect-square max-w-[90vw] max-h-[90vh] sm:max-w-[600px] sm:max-h-[600px] md:max-w-[800px] md:max-h-[800px] lg:max-w-[1000px] lg:max-h-[1000px]",
         className
       )}
     >
       <canvas
         className={cn(
-          'h-full w-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]'
+          "h-full w-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]"
         )}
         ref={canvasRef}
         onPointerDown={(e) =>
