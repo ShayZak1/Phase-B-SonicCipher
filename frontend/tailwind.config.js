@@ -17,6 +17,9 @@ module.exports = {
         ripple: "ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite",
         waveMove: "waveMove 2s linear infinite", // Add the waveform animation here
       },
+      boxShadow: {
+        'glow': '0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px rgba(255, 255, 255, 0.6), 0 0 24px rgba(251, 100, 21, 0.5)',
+      },
       keyframes: {
         "spin-around": {
           "0%": {

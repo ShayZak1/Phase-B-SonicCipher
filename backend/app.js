@@ -100,50 +100,61 @@ app.post('/text-to-speech', async (req, res) => {
 });
 
 
-// New OpenAI Translation Route using v1/chat/completions
+// Assuming this is part of your backend server setup (e.g., Express.js)
 app.post('/openai-translate', async (req, res) => {
-  const { q, source, target, format, additionalText } = req.body;
+  const { q, source, target, format, additionalText, tone, formality } = req.body;
 
+  // Check for missing required fields
   if (!q || !source || !target || !format) {
-    console.log('Missing required fields'); // Log missing fields error
+    console.log('Missing required fields'); 
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
-    const prompt = `You are an expert translator specializing in translating text from ${source} to ${target}. Please provide a translation that accurately reflects the original meaning and incorporates the following specifications: ${additionalText}.\n\n
-    Examples of translations:
-    English: "How are you?" -> Hebrew (formal): "מה שלומך?"
-    English: "How are you?" -> Hebrew (slang): "מה קורה?"
-    Only return the translated text.
+    // Build the prompt using the received profile settings
+    const prompt = `You are an expert translator specializing in translating text from ${source} to ${target}. Provide a translation that accurately reflects the original meaning with the following specifications:
+
+    - Tone: ${tone || 'neutral'}
+    - Formality: ${formality || 'formal'}
+    - Additional specifications: ${additionalText || 'none'}
+
     Now translate the following text:
     "${q}"`;
 
     console.log('Generated prompt:', prompt); // Log the generated prompt
 
+    // Make the API request to OpenAI using the customized prompt
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: "gpt-4",
+      model: 'gpt-4',
       messages: [
-        { role: "system", content: "You are a translation assistant. Only provide the translation as instructed, without adding extra notes or explanations." },
-        { role: "user", content: prompt }
+        {
+          role: 'system',
+          content: 'You are a translation assistant. Only provide the translation as instructed, without adding extra notes or explanations.',
+        },
+        { role: 'user', content: prompt },
       ],
       max_tokens: 1000,
     }, {
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
     });
 
+    // Extract the translated text from the API response
     const translatedText = response.data.choices[0].message.content.trim();
-    console.log('Translated text:', translatedText); // Log the translated text
+    console.log('Translated text:', translatedText); 
 
+    // Send the translated text back to the frontend
     res.json({ data: { translations: [{ translatedText }] } });
   } catch (error) {
     console.error('Error translating text with OpenAI:', error);
-    console.error('Error details:', error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Failed to translate text with OpenAI', details: error.response ? error.response.data : error.message });
   }
 });
+
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

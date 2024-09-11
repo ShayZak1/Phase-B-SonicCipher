@@ -50,4 +50,9 @@ body {
   .translator-upbg {
     @apply w-[90%] max-w-lg max-[392px]:h-[90%] sm:h-auto bg-[#2d2d2d] bg-opacity-70 rounded-xl shadow-2xl shadow-gray-800 flex flex-col;
   }
+  .glow {
+    color: #000000; /* Main text color */
+    -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.8); /* Outline color and thickness */
+    /* Optional: Fallback for non-WebKit browsers using text-shadow */
+  }
 }

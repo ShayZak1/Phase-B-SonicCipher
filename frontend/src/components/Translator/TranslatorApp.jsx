@@ -1,27 +1,47 @@
-import { h } from 'preact';
-import { useTranslator } from '../../hooks/useTranslator';
-import { translateText, convertTextToSpeech } from '../../api/TranslatorAppApi';
-import MicRecord from '../MicRecord/MicRecord';
-import PremiumTranslator from '../PremiumTranslator/PremiumTransltor';
-import TextToSpeech from '../TextToSpeech/TextToSpeech';
-import LanguageSelector from '../LanguageSelector/LanguageSelector';
-import { useState, useEffect } from 'preact/hooks';
-import { languages } from '../../LanguageData';
-import ShareButton from '../ShareButton/ShareButton';
-import TranslationHistory from './TranslationHistory';
-import SettingsCog from './SettingsCog';
-import { ShimmerButton } from '../ShimmerButton/ShimmerButton';
+import { h } from "preact";
+import { useTranslator } from "../../hooks/useTranslator";
+import { translateText, convertTextToSpeech } from "../../api/TranslatorAppApi";
+import MicRecord from "../MicRecord/MicRecord";
+import PremiumTranslator from "../PremiumTranslator/PremiumTransltor";
+import TextToSpeech from "../TextToSpeech/TextToSpeech";
+import LanguageSelector from "../LanguageSelector/LanguageSelector";
+import { useState, useEffect } from "preact/hooks";
+import { languages } from "../../LanguageData";
+import ShareButton from "../ShareButton/ShareButton";
+import TranslationHistory from "./TranslationHistory";
+import SettingsCog from "./SettingsCog";
+import PremiumSettingsCog from "../PremiumTranslator/PremiumSettingsCog"; // Import the new Premium Settings component
+import { ShimmerButton } from "../ShimmerButton/ShimmerButton";
 
 const TranslatorApp = ({ onClose }) => {
   const {
-    inputText, setInputText, translatedText, setTranslatedText,
-    sourceLang, setSourceLang, targetLang, setTargetLang,
-    showLanguages, setShowLanguages, charCount, setCharCount,
-    currentLanguageSelection, setCurrentLanguageSelection,
-    audioUrl, setAudioUrl, plan, setPlan,
-    dropdownRef, textareaRef, audioRef,
-    handleMaxChar, handleLanguageClick, handleLanguageSelect, handleSwapLanguage,
-    history: translationHistory, handleSaveTranslation
+    inputText,
+    setInputText,
+    translatedText,
+    setTranslatedText,
+    sourceLang,
+    setSourceLang,
+    targetLang,
+    setTargetLang,
+    showLanguages,
+    setShowLanguages,
+    charCount,
+    setCharCount,
+    currentLanguageSelection,
+    setCurrentLanguageSelection,
+    audioUrl,
+    setAudioUrl,
+    plan,
+    setPlan,
+    dropdownRef,
+    textareaRef,
+    audioRef,
+    handleMaxChar,
+    handleLanguageClick,
+    handleLanguageSelect,
+    handleSwapLanguage,
+    history: translationHistory,
+    handleSaveTranslation,
   } = useTranslator();
 
   const handlePlanChange = (selectedPlan) => {
@@ -31,27 +51,29 @@ const TranslatorApp = ({ onClose }) => {
   };
 
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
-  const [voiceGender, setVoiceGender] = useState('female');
+  const [voiceGender, setVoiceGender] = useState("female");
   const [triggerTranslate, setTriggerTranslate] = useState(false);
+  const [currentProfileSettings, setCurrentProfileSettings] = useState(null);
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleTranslate();
     }
   };
 
   const handleTranslate = () => {
-    if (plan === 'Free') {
+    if (plan === "Free") {
       translateText({
         inputText,
         sourceLang,
         targetLang,
         plan,
         setTranslatedText,
-        convertTextToSpeech: (text, lang) => convertTextToSpeech(text, lang, setAudioUrl, voiceGender)
+        convertTextToSpeech: (text, lang) =>
+          convertTextToSpeech(text, lang, setAudioUrl, voiceGender),
       });
-    } else if (plan === 'Premium') {
+    } else if (plan === "Premium") {
       setTriggerTranslate(true);
     }
   };
@@ -74,7 +96,10 @@ const TranslatorApp = ({ onClose }) => {
   const handleStopRecording = () => {
     setTimeout(() => {
       if (textareaRef.current) {
-        const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+        const event = new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+        });
         textareaRef.current.dispatchEvent(event);
       }
     }, 100);
@@ -83,7 +108,8 @@ const TranslatorApp = ({ onClose }) => {
   const toggleHistory = () => setIsHistoryVisible(!isHistoryVisible);
 
   useEffect(() => {
-    if (inputText && translatedText) handleSaveTranslation(inputText, translatedText);
+    if (inputText && translatedText)
+      handleSaveTranslation(inputText, translatedText);
   }, [translatedText]);
 
   useEffect(() => {
@@ -91,6 +117,11 @@ const TranslatorApp = ({ onClose }) => {
       setTriggerTranslate(false); // Reset trigger after use
     }
   }, [triggerTranslate, translatedText]);
+
+  const handleApplyProfile = (settings) => {
+    setCurrentProfileSettings(settings);
+  };
+
   return (
     <div className="w-full h-full max-h-screen flex flex-col gap-4 justify-center items-center px-6 sm:px-2 pt-12 pb-6 relative overflow-hidden translator-upbg">
       <div className="absolute top-4 left-4 flex gap-2">
@@ -103,8 +134,15 @@ const TranslatorApp = ({ onClose }) => {
           <i className="fa-solid fa-xmark text-xl text-white"></i>
         </button>
       </div>
+      <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
+        <img
+          src="/Soniccipherlogo1.png"
+          alt="Sonic Cipher Logo"
+          className="h-12 w-auto object-contain"
+        />
+      </div>
       <div className="flex justify-center gap-4 my-4">
-      <ShimmerButton
+        <ShimmerButton
           buttonColor="#3b82f6"
           buttonTextColor="#1f2937"
           isActive={plan === "Free"} // Mark active if the plan is Free
@@ -121,47 +159,107 @@ const TranslatorApp = ({ onClose }) => {
           onClick={() => handlePlanChange("Premium")}
         />
       </div>
-      <LanguageSelector sourceLang={sourceLang} targetLang={targetLang} handleLanguageClick={handleLanguageClick} handleSwapLanguage={handleSwapLanguage} />
+      <LanguageSelector
+        sourceLang={sourceLang}
+        targetLang={targetLang}
+        handleLanguageClick={handleLanguageClick}
+        handleSwapLanguage={handleSwapLanguage}
+      />
       {showLanguages && (
-        <div className="w-[calc(100%-4rem)] h-[calc(100%-9rem)] bg-white absolute top-32 left-8 z-10 rounded shadow-lg p-4 overflow-y-scroll" ref={dropdownRef}>
+        <div
+          className="w-[calc(100%-4rem)] h-[calc(100%-9rem)] text-white bg-gray-700 border border-gray-600 absolute top-32 left-8 z-10 rounded shadow-lg p-4 overflow-y-scroll"
+          ref={dropdownRef}
+        >
           <ul>
             {Object.entries(languages).map(([code, name]) => (
-              <li className="cursor-pointer hover:bg-[#10646b] transition duration-200 p-2 rounded" key={code} onClick={() => handleLanguageSelect(code)}>{name}</li>
+              <li
+                className="cursor-pointer hover:bg-[#10646b] transition duration-200 p-2 rounded"
+                key={code}
+                onClick={() => handleLanguageSelect(code)}
+              >
+                {name}
+              </li>
             ))}
           </ul>
         </div>
       )}
       <div className="w-full relative flex-1">
-        <textarea className="textarea w-full p-2 border border-gray-300 rounded-lg h-full" value={inputText} onChange={handleMaxChar} onKeyDown={handleKeyDown} ref={textareaRef}></textarea>
-        <div className="absolute bottom-2 right-4 text-gray-400">{inputText.length}/200</div>
+        <textarea
+          className="textarea w-full p-2 text-white  border  rounded-lg h-full"
+          value={inputText}
+          onChange={handleMaxChar}
+          onKeyDown={handleKeyDown}
+          ref={textareaRef}
+        ></textarea>
+        <div className="absolute bottom-2 right-4 text-gray-400">
+          {inputText.length}/200
+        </div>
       </div>
-      {plan === 'Premium' && (
+      {plan === "Premium" && (
         <PremiumTranslator
           inputText={inputText}
           sourceLang={sourceLang}
           targetLang={targetLang}
           onTranslate={setTranslatedText}
-          convertTextToSpeech={(text, lang) => convertTextToSpeech(text, lang, setAudioUrl, voiceGender)}
+          convertTextToSpeech={(text, lang) =>
+            convertTextToSpeech(text, lang, setAudioUrl, voiceGender)
+          }
           triggerTranslate={triggerTranslate}
+          profileSettings={currentProfileSettings} // Pass the profile settings here
         />
       )}
-  <div className="w-full flex justify-center items-center gap-2 bg-[#3A3F44] bg-opacity-30 px-4 py-2 rounded-lg shadow-md">
-  <MicRecord onTranscript={handleTranscript} sourceLang={sourceLang} onStartRecording={handleStartRecording} onStopRecording={handleStopRecording} />
-        <button className="w-12 h-12 bg-gradient-to-r from-[#4A90E2] to-[#50B3A2] rounded-full text-2xl text-gray-600 flex justify-center items-center active:translate-y-[1px]" onClick={handleTranslate}>
+      <div className="w-full flex justify-center items-center gap-2 bg-[#3A3F44] bg-opacity-30 px-4 py-2 rounded-lg shadow-md">
+        <MicRecord
+          onTranscript={handleTranscript}
+          sourceLang={sourceLang}
+          onStartRecording={handleStartRecording}
+          onStopRecording={handleStopRecording}
+        />
+        <button
+          className="w-12 h-12 bg-gradient-to-r from-[#4A90E2] to-[#50B3A2] rounded-full text-2xl text-gray-600 flex justify-center items-center active:translate-y-[1px]"
+          onClick={handleTranslate}
+        >
           <i className="fa-solid fa-chevron-down"></i>
         </button>
-        <SettingsCog voiceGender={voiceGender} onVoiceSelection={setVoiceGender} />
+
+        {/* Conditional rendering of Settings Cogs */}
+        {plan === "Premium" ? (
+          <PremiumSettingsCog
+            voiceGender={voiceGender}
+            onVoiceSelection={setVoiceGender}
+            onApplyProfile={handleApplyProfile}
+          />
+        ) : (
+          <SettingsCog
+            voiceGender={voiceGender}
+            onVoiceSelection={setVoiceGender}
+          />
+        )}
       </div>
       <div className="w-full relative flex-1">
-        <textarea className="textarea w-full p-2 border border-gray-300 rounded-lg h-full" value={translatedText} readOnly></textarea>
+        <textarea
+          className="textarea w-full p-2 border border-gray-300 rounded-lg h-full"
+          value={translatedText}
+          readOnly
+        ></textarea>
         <div className="absolute bottom-2 left-2">
           <ShareButton code={translatedText} isTranslatorApp={true} />
         </div>
-        <div className="absolute bottom-2 right-4 text-gray-400">{translatedText.length}/200</div>
+        <div className="absolute bottom-2 right-4 text-gray-400">
+          {translatedText.length}/200
+        </div>
       </div>
-      <TextToSpeech text={translatedText} languageCode={targetLang} voiceGender={voiceGender} />
+      <TextToSpeech
+        text={translatedText}
+        languageCode={targetLang}
+        voiceGender={voiceGender}
+      />
       {isHistoryVisible && (
-        <TranslationHistory translationHistory={translationHistory} handleCopy={handleCopy} onClose={toggleHistory} />
+        <TranslationHistory
+          translationHistory={translationHistory}
+          handleCopy={handleCopy}
+          onClose={toggleHistory}
+        />
       )}
     </div>
   );

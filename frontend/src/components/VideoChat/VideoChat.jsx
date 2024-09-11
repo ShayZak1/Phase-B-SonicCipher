@@ -273,16 +273,7 @@ const toggleMute = () => {
       console.error('Error starting recognition:', error);
     }
   };
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
 const connect = (e) => {
   e.preventDefault();
 
