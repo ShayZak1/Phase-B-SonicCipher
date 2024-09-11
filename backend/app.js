@@ -123,12 +123,13 @@ app.post('/openai-translate', async (req, res) => {
   // Combine the received specifications into the translation prompt
   const prompt = `You are an expert translator specializing in translating text from ${source} to ${target}. Please provide a translation that accurately reflects the original meaning with the following specifications:
 
-    - Tone: ${tone || 'neutral'}
-    - Formality: ${formality || 'formal'}
-    - Additional specifications: ${additionalText || 'none'}
-
-    Now translate the following text:
-    "${q}"`;
+  - Tone: ${tone || 'neutral'} (make sure it sounds ${tone === 'friendly' ? 'approachable and warm' : tone === 'professional' ? 'respectful and serious' : 'neutral'}).
+  - Formality: ${formality || 'formal'} (ensure that the language remains ${formality === 'informal' ? 'casual and relaxed' : 'formal and suitable for business contexts'}).
+  - Additional specifications: ${additionalText || 'none'}
+  
+  Now translate the following text:
+  "${q}"`;
+  
 
   // Log the generated prompt to verify how the specifications are used
   console.log('Generated prompt with combined specifications:', prompt);
