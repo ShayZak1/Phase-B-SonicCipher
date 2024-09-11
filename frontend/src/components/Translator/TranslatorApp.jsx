@@ -12,6 +12,7 @@ import TranslationHistory from "./TranslationHistory";
 import SettingsCog from "./SettingsCog";
 import PremiumSettingsCog from "../PremiumTranslator/PremiumSettingsCog";
 import { ShimmerButton } from "../ShimmerButton/ShimmerButton";
+import RephraseSuggestions from "../PremiumTranslator/RephraseSuggestions";
 
 const TranslatorApp = ({ onClose }) => {
   const {
@@ -26,6 +27,7 @@ const TranslatorApp = ({ onClose }) => {
   const [voiceGender, setVoiceGender] = useState("female");
   const [triggerTranslate, setTriggerTranslate] = useState(false);
   const [currentProfileSettings, setCurrentProfileSettings] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleTranslate = () => {
     plan === "Free" ? translateText({ inputText, sourceLang, targetLang, plan, setTranslatedText,
@@ -108,11 +110,26 @@ const TranslatorApp = ({ onClose }) => {
           <i className="fa-solid fa-chevron-down"></i>
         </button>
         {plan === "Premium" ? (
-          <PremiumSettingsCog voiceGender={voiceGender} onVoiceSelection={setVoiceGender}
-            onApplyProfile={handleApplyProfile} />
-        ) : (
-          <SettingsCog voiceGender={voiceGender} onVoiceSelection={setVoiceGender} />
-        )}
+    <>
+      <PremiumSettingsCog
+        voiceGender={voiceGender}
+        onVoiceSelection={setVoiceGender}
+        onApplyProfile={handleApplyProfile}
+      />
+            <RephraseSuggestions
+              translatedText={translatedText}
+              onApplySuggestion={(translatedText) => {
+                setTranslatedText(translatedText); // Update translated text with the suggestion
+              }}
+            />
+            
+    </>
+  ) : (
+    <SettingsCog
+      voiceGender={voiceGender}
+      onVoiceSelection={setVoiceGender}
+    />
+  )}
       </div>
       <div className="w-full relative flex-1">
         <textarea className="textarea w-full p-2 border border-gray-300 rounded-lg h-full"
