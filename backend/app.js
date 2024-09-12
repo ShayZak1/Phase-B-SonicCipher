@@ -197,7 +197,7 @@ app.post('/generate-suggestions', async (req, res) => {
   console.log('Generating suggestions for:', text);
 
   try {
-    const prompt = `The following sentence has been translated, but could be rephrased to sound more fluent or engaging for the intended audience. Provide three alternative suggestions that maintain the meaning but adjust the tone and phrasing:
+    const prompt = `The following sentence has been translated, but could be rephrased to sound more fluent or engaging for the intended audience. Provide three alternative suggestions that maintain the meaning but adjust the tone and phrasing in the same given text language (dont write numbers and dots before the suggestions only the suggestions them self):
 
 Original: "${text}"
 
@@ -206,7 +206,7 @@ Suggestions:`;
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
       model: 'gpt-4',
       messages: [
-        { role: 'system', content: 'You are an assistant that provides alternative phrasings for translations, enhancing fluency and alignment with audience expectations.' },
+        { role: 'system', content: 'You are an assistant that provides alternative phrasings for translations, enhancing fluency and alignment with audience expectations in the same given language.' },
         { role: 'user', content: prompt }
       ],
       max_tokens: 150,

@@ -22,6 +22,7 @@ const RephraseSuggestions = ({ translatedText, onApplySuggestion }) => {
 
     setIsSuggestionsVisible(!isSuggestionsVisible);
     if (!isSuggestionsVisible) {
+        console.log("the text the is translated:", translatedText); // Debugging line
       fetchSuggestions(translatedText); // Fetch suggestions when opening
     }
   };
