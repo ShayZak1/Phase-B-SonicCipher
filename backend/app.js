@@ -3,7 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
 const path = require('path');
-const cors = require('cors');
+
 
 require('dotenv').config();
 
@@ -20,11 +20,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
-  origin: 'https://sonic-cipher-omega.vercel.app/', // Replace with your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
-  allowedHeaders: ['Content-Type', 'Authorization'] // Allowed headers
-}));
+
 
 const TRANSLATE_API_KEY = process.env.TRANSLATE_API_KEY;
 const SPEECH_API_KEY = process.env.SPEECH_API_KEY;
