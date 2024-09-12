@@ -3,8 +3,8 @@ import { h } from 'preact';
 
 const TranslationHistory = ({ translationHistory, handleCopy, onClose }) => {
   return (
-    <div className="absolute top-16 right-4 w-80 bg-gray-100 p-4 rounded shadow-lg max-h-64 overflow-y-auto">
-      <h3 className="text-lg font-semibold mb-2">Translation History</h3>
+    <div className="absolute top-16 right-4 w-80 bg-gray-600 p-4 rounded shadow-lg max-h-64 overflow-y-auto">
+      <h3 className="text-lg text-white font-semibold mb-2">Translation History</h3>
       {translationHistory.length === 0 ? (
         <p className="text-gray-500">No history available.</p>
       ) : (

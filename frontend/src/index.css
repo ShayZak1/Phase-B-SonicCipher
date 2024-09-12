@@ -11,6 +11,11 @@ body {
     @apply w-52 rounded-md font-medium my-4 py-3;
   }
 
+  .button2 {
+    @apply w-full max-w-xs text-center rounded-md font-medium py-2 px-4 bg-blue-500 text-white 
+           overflow-hidden whitespace-normal break-words; /* Ensures text wraps within the button */
+  }
+
   .button-main {
     @apply bg-mainColor text-white;
   }
