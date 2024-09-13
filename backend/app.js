@@ -237,11 +237,11 @@ Suggestions:`;
 
 app.post('/stream-audio', async (req, res) => {
   try {
-    // Log the received body to inspect its content
+    // Log received body to inspect its content
     console.log('Received body:', req.body);
 
     // Extract audio content from the request
-    const audioBytes = req.body.content; // Adjust this based on actual structure
+    const audioBytes = req.body.content; // Expecting 'content' field to contain Base64 string
 
     // Validate that audioBytes is not undefined and is a string
     if (!audioBytes || typeof audioBytes !== 'string') {
@@ -251,12 +251,12 @@ app.post('/stream-audio', async (req, res) => {
 
     const request = {
       config: {
-        encoding: 'LINEAR16', // Confirm this matches the format of your audio data
-        sampleRateHertz: 16000, // Confirm this matches the audio's sample rate
+        encoding: 'WEBM_OPUS', // Ensure this matches the encoding used when creating the Blob
+        sampleRateHertz: 48000, // Ensure this matches the sample rate of the audio
         languageCode: 'en-US',
       },
       audio: {
-        content: audioBytes, // Pass the correct base64 string
+        content: audioBytes, // Pass the correct Base64 string
       },
     };
 
@@ -285,6 +285,7 @@ app.post('/stream-audio', async (req, res) => {
     }
   }
 });
+
 
 
 

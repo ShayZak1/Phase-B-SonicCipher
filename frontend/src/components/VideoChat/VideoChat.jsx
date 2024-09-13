@@ -219,16 +219,30 @@ const VideoChat = ({ onClose }) => {
 
   const sendAudioToBackend = async (audioBuffer) => {
     try {
-      // Convert audio buffer to a base64 string
-      const audioBase64 = Buffer.from(audioBuffer).toString('base64');
+      // Create a Blob from the audio buffer
+      const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
   
-      // Send the audio data in JSON format with the correct structure
-      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/stream-audio`, 
-        { content: audioBase64 }, // Send the audio data as { content: audioBase64 }
-        {
-          headers: { 'Content-Type': 'application/json' }, // Ensure the content type is JSON
-        }
-      );
+      // Convert the Blob to Base64
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      reader.onloadend = async () => {
+        // Extract the Base64 string (removing the prefix)
+        const base64Audio = reader.result.split(',')[1];
+  
+        // Send the Base64 encoded audio to the backend
+        const response = await axios.post(
+          `${process.env.REACT_APP_BACKEND_URL}/stream-audio`,
+          { content: base64Audio }, // Ensure this matches the expected structure in the backend
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+        
+        console.log('Response from backend:', response.data);
+      };
+  
+      reader.onerror = (error) => {
+        console.error('Error reading audio data:', error);
+      };
     } catch (error) {
       console.error("Error sending audio to backend:", error);
     }
