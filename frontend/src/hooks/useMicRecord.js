@@ -54,34 +54,12 @@ export const useMicRecord = (onTranscript, sourceLang, onStartRecording, onStopR
       };
   
       startAnalyzing(stream);
-  
-      // Optional: Handle speech recognition only if available
-      if ("webkitSpeechRecognition" in window) {
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = sourceLang;
-  
-        recognition.onresult = (event) => {
-          let interimTranscript = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            interimTranscript += event.results[i][0].transcript;
-          }
-          onTranscript(interimTranscript);
-        };
-  
-        recognition.onerror = (event) => {
-          setRecordingMessage(event.error !== "no-speech" ? `Error in recognition: ${event.error}` : "");
-        };
-  
-        recognitionRef.current = recognition;
-        recognition.start();
-      }
     } catch (error) {
       setRecordingMessage(`Error accessing microphone: ${error.message}`);
       setIsRecording(false);
     }
   };
+  
   
 
   const stopRecording = () => {
