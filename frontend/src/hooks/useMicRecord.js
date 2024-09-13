@@ -21,69 +21,68 @@ export const useMicRecord = (onTranscript, sourceLang, onStartRecording, onStopR
       setRecordingMessage("");
       setIsRecording(true);
       onStartRecording();
-
+  
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setStream(stream);
-
+  
       let mimeType = "audio/webm;codecs=opus";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/ogg;codecs=opus";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/ogg";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "";
-
+  
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       setMediaRecorder(recorder);
       recorder.start();
-
+  
       const audioChunks = [];
       recorder.ondataavailable = (event) => audioChunks.push(event.data);
-
+  
       recorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: mimeType || "audio/webm" });
         const audioBase64 = await convertBlobToBase64(audioBlob);
-
+  
         try {
           const transcript = await sendAudioToBackend(audioBase64, sourceLang);
           onTranscript && onTranscript(transcript);
         } catch {
           setRecordingMessage("Error transcribing audio.");
         }
-
+  
         onStopRecording();
         stopAnalyzing();
       };
-
+  
       startAnalyzing(stream);
-
-      if (!("webkitSpeechRecognition" in window)) {
-        setRecordingMessage("Speech recognition not supported in this browser.");
-        return;
+  
+      // Optional: Handle speech recognition only if available
+      if ("webkitSpeechRecognition" in window) {
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = sourceLang;
+  
+        recognition.onresult = (event) => {
+          let interimTranscript = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            interimTranscript += event.results[i][0].transcript;
+          }
+          onTranscript(interimTranscript);
+        };
+  
+        recognition.onerror = (event) => {
+          setRecordingMessage(event.error !== "no-speech" ? `Error in recognition: ${event.error}` : "");
+        };
+  
+        recognitionRef.current = recognition;
+        recognition.start();
       }
-
-      const recognition = new window.webkitSpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = sourceLang;
-
-      recognition.onresult = (event) => {
-        let interimTranscript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          interimTranscript += event.results[i][0].transcript;
-        }
-        onTranscript(interimTranscript);
-      };
-
-      recognition.onerror = (event) => {
-        setRecordingMessage(event.error !== "no-speech" ? `Error in recognition: ${event.error}` : "");
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
     } catch (error) {
       setRecordingMessage(`Error accessing microphone: ${error.message}`);
       setIsRecording(false);
     }
   };
+  
 
   const stopRecording = () => {
     setIsRecording(false);
