@@ -237,19 +237,24 @@ Suggestions:`;
 
 app.post('/stream-audio', async (req, res) => {
   try {
-    const audioBytes = req.body.toString('base64'); // Convert received audio data to base64 string
+    // Ensure req.body is the correct base64 string; adjust if needed
+    const audioBytes = typeof req.body === 'string' ? req.body : req.body.content;
+
+    // Log to confirm the correct data is being processed
+    console.log('Audio content received:', audioBytes);
 
     const request = {
       config: {
-        encoding: 'LINEAR16', // Ensure this matches the audio format
-        sampleRateHertz: 16000, // Ensure the sample rate matches
+        encoding: 'LINEAR16', // Confirm this matches the format of your audio data
+        sampleRateHertz: 16000, // Confirm this matches the audio's sample rate
         languageCode: 'en-US',
       },
       audio: {
-        content: audioBytes,
+        content: audioBytes, // Ensure the correct base64 string is passed here
       },
     };
 
+    // Send the request to Google Speech-to-Text API
     const response = await axios.post(
       `https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`,
       request
@@ -267,13 +272,15 @@ app.post('/stream-audio', async (req, res) => {
   } catch (error) {
     console.error('Error processing audio:', error.message);
     if (error.response) {
-      console.error('Response data:', error.response.data);
+      console.error('Error response from Google API:', error.response.data);
       res.status(500).json({ error: 'Failed to process audio', details: error.response.data });
     } else {
       res.status(500).json({ error: 'Failed to process audio', details: error.message });
     }
+    
   }
 });
+
 
 
 app.listen(PORT, () => {
