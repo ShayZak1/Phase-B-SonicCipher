@@ -233,6 +233,42 @@ Suggestions:`;
     res.status(500).json({ error: 'Failed to generate suggestions', details: error.message });
   }
 });
+
+
+app.post('/stream-audio', async (req, res) => {
+  const audioBytes = req.body.toString('base64'); // Convert the received audio data to a base64 string
+
+  try {
+    const response = await axios.post(
+      `https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`,
+      {
+        config: {
+          encoding: 'LINEAR16', // Adjust encoding to match your audio format
+          sampleRateHertz: 16000, // Adjust sample rate according to your audio settings
+          languageCode: 'en-US', // Set the language code as needed
+        },
+        audio: {
+          content: audioBytes, // Pass the base64-encoded audio data
+        },
+      }
+    );
+
+    if (response.data.results) {
+      const transcription = response.data.results
+        .map((result) => result.alternatives[0].transcript)
+        .join('\n');
+
+      console.log('Transcription:', transcription);
+      res.json({ transcription });
+    } else {
+      res.status(500).json({ error: 'Unexpected response format', details: response.data });
+    }
+  } catch (error) {
+    console.error('Error processing audio:', error);
+    res.status(500).json({ error: 'Failed to transcribe audio', details: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

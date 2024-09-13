@@ -59,34 +59,19 @@ const VideoChat = ({ onClose }) => {
   // Function to toggle mute and control subtitle display
   const toggleMute = () => {
     if (localStreamRef.current) {
+      // Toggle the audio tracks' enabled state
       localStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled; // Toggle audio track enabled state
+        track.enabled = !track.enabled;
       });
-
+  
       const newMutedState = !isMuted;
       setIsMuted(newMutedState);
-
-      if (!newMutedState && !isRecognitionRunning && recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-          isRecognitionRunning = true; // Update state after starting
-          console.log("Recognition started after unmuting...");
-        } catch (error) {
-          console.error("Error starting recognition after unmute:", error);
-        }
-      } else if (
-        newMutedState &&
-        isRecognitionRunning &&
-        recognitionRef.current
-      ) {
-        try {
-          isStopping = true; // Set stopping state to manage restart attempts
-          recognitionRef.current.stop();
-          isRecognitionRunning = false; // Update state after stopping
-          console.log("Recognition stopped due to mute...");
-        } catch (error) {
-          console.error("Error stopping recognition:", error);
-        }
+  
+      // Optionally, start or stop transcription based on the muted state
+      if (!newMutedState && !isRecognitionRunning) {
+        startRealTimeTranscription(); // Start transcription when unmuted
+      } else if (newMutedState && isRecognitionRunning) {
+        stopRealTimeTranscription(); // Stop transcription when muted
       }
     }
   };
@@ -190,114 +175,57 @@ const VideoChat = ({ onClose }) => {
       console.error("Error translating and sending transcript:", error);
     }
   };
-  const startRealTimeTranscription = () => {
-    if (!("webkitSpeechRecognition" in window)) {
-      console.error("Speech recognition not supported in this browser.");
-      return;
+  const stopRealTimeTranscription = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      isRecognitionRunning = false;
+      console.log("Stopped real-time transcription.");
     }
-
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = globalSourceLang; // Use the global source language
-
-    recognition.onresult = (event) => {
-      let interimTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        interimTranscript += event.results[i][0].transcript;
-      }
-      sendTranscriptToPeer(interimTranscript);
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Recognition error:", event.error);
-
-      if (event.error === "aborted") {
-        console.log("Recognition aborted; will attempt to restart if running.");
-
-        // Prevent further restarts during the stop process
-        isStopping = true;
-        clearTimeout(restartAttemptTimeout); // Clear any pending restart attempts
-
-        // Fully stop recognition before trying to restart
-        if (recognitionRef.current) {
-          try {
-            recognitionRef.current.stop();
-          } catch (error) {
-            console.warn("Failed to stop recognition:", error);
-          }
-        }
-
-        // Delay next restart attempt to ensure full stop
-        restartAttemptTimeout = setTimeout(() => {
-          if (isRecognitionRunning && !isMuted && !isStopping) {
-            try {
-              recognitionRef.current.start();
-              console.log("Recognition restarted after aborted error.");
-              isRecognitionRunning = true;
-            } catch (error) {
-              console.warn("Failed to restart recognition:", error);
-              isRecognitionRunning = false; // Correct state management
-            }
-          }
-        }, 1000); // Delay to prevent immediate looping restarts
-      } else {
-        // Handle other errors by stopping recognition and setting state to false
-        if (recognitionRef.current) {
-          try {
-            recognitionRef.current.stop();
-            isRecognitionRunning = false;
-            console.log("Recognition stopped due to error...");
-          } catch (error) {
-            console.warn("Failed to stop recognition:", error);
-          }
-        }
-      }
-    };
-
-    recognition.onend = () => {
-      console.log(
-        "Recognition ended. isRecognitionRunning:",
-        isRecognitionRunning,
-        "isMuted:",
-        isMuted
-      );
-
-      // Reset stopping flag after recognition has ended
-      isStopping = false;
-
-      // Restart recognition only if it was running and not muted
-      if (isRecognitionRunning && !isMuted && !isStopping) {
-        console.log("Attempting to restart recognition...");
-        setTimeout(() => {
-          try {
-            recognitionRef.current.start();
-            isRecognitionRunning = true;
-            console.log("Recognition restarted after ending.");
-          } catch (error) {
-            console.warn("Failed to restart recognition:", error);
-            isRecognitionRunning = false; // Correct state management
-          }
-        }, 500); // Add delay to ensure proper restart
-      } else {
-        console.log(
-          "Recognition has stopped due to manual stop or mute; it will not restart."
-        );
-      }
-    };
-
-    recognitionRef.current = recognition;
+  };
+  const startRealTimeTranscription = async () => {
     try {
-      recognitionRef.current.start();
-      isRecognitionRunning = true; // Set running state to true when starting
-      console.log(
-        `Starting transcription with source language: ${recognition.lang}`
-      );
+      // Step 1: Capture audio using WebRTC
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioStream = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+  
+      // Step 2: Handle audio processing
+      processor.onaudioprocess = (event) => {
+        const inputData = event.inputBuffer.getChannelData(0);
+        const audioBuffer = new Int16Array(inputData.length);
+  
+        // Convert audio data to 16-bit PCM format
+        for (let i = 0; i < inputData.length; i++) {
+          audioBuffer[i] = Math.max(-1, Math.min(1, inputData[i])) * 32767;
+        }
+  
+        // Step 3: Send processed audio to backend for transcription
+        sendAudioToBackend(audioBuffer);
+      };
+  
+      // Connect the audio processor and start capturing
+      audioStream.connect(processor);
+      processor.connect(audioContext.destination);
+  
+      // Store the processor so it can be stopped later
+      recognitionRef.current = { stop: () => processor.disconnect() };
+      isRecognitionRunning = true;
+      console.log("Real-time transcription started using WebRTC audio streaming.");
     } catch (error) {
-      console.error("Error starting recognition:", error);
+      console.error("Error starting audio capture:", error);
     }
   };
 
+  const sendAudioToBackend = async (audioBuffer) => {
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/stream-audio`, audioBuffer, {
+        headers: { 'Content-Type': 'application/octet-stream' },
+      });
+    } catch (error) {
+      console.error("Error sending audio to backend:", error);
+    }
+  };
   const connect = (e) => {
     e.preventDefault();
 
