@@ -191,70 +191,113 @@ const VideoChat = ({ onClose }) => {
     }
   };
   const startRealTimeTranscription = () => {
-    if (!navigator.mediaDevices || !window.MediaRecorder) {
-      console.error('MediaRecorder is not supported in this browser.');
+    if (!("webkitSpeechRecognition" in window)) {
+      console.error("Speech recognition not supported in this browser.");
       return;
     }
-  
-    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-  
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          // Convert chunk to Base64 and send immediately
-          const audioBlob = new Blob([event.data], { type: 'audio/webm' });
-          convertBlobToBase64(audioBlob).then((audioBase64) => {
-            sendAudioToBackend(audioBase64, 'en-US'); // Use the appropriate language code
-          });
-        }
-      };
-  
-      recorder.start(200); // Capture audio every 200 ms
-  
-      recorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-      };
-    }).catch((error) => {
-      console.error('Error accessing microphone:', error);
-    });
-  };
-  
-  
 
-  const convertBlobToBase64 = (blob) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = globalSourceLang; // Use the global source language
 
-  
-  const sendAudioToBackend = async (audioBase64, languageCode) => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/real-time-speech-to-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioBase64, languageCode }),
-      });
-  
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-  
-      // Continuously read the response stream for new transcriptions
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = decoder.decode(value, { stream: true });
-        console.log('Transcription:', text);
+    recognition.onresult = (event) => {
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        interimTranscript += event.results[i][0].transcript;
       }
+      sendTranscriptToPeer(interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Recognition error:", event.error);
+
+      if (event.error === "aborted") {
+        console.log("Recognition aborted; will attempt to restart if running.");
+
+        // Prevent further restarts during the stop process
+        isStopping = true;
+        clearTimeout(restartAttemptTimeout); // Clear any pending restart attempts
+
+        // Fully stop recognition before trying to restart
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch (error) {
+            console.warn("Failed to stop recognition:", error);
+          }
+        }
+
+        // Delay next restart attempt to ensure full stop
+        restartAttemptTimeout = setTimeout(() => {
+          if (isRecognitionRunning && !isMuted && !isStopping) {
+            try {
+              recognitionRef.current.start();
+              console.log("Recognition restarted after aborted error.");
+              isRecognitionRunning = true;
+            } catch (error) {
+              console.warn("Failed to restart recognition:", error);
+              isRecognitionRunning = false; // Correct state management
+            }
+          }
+        }, 1000); // Delay to prevent immediate looping restarts
+      } else {
+        // Handle other errors by stopping recognition and setting state to false
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+            isRecognitionRunning = false;
+            console.log("Recognition stopped due to error...");
+          } catch (error) {
+            console.warn("Failed to stop recognition:", error);
+          }
+        }
+      }
+    };
+
+    recognition.onend = () => {
+      console.log(
+        "Recognition ended. isRecognitionRunning:",
+        isRecognitionRunning,
+        "isMuted:",
+        isMuted
+      );
+
+      // Reset stopping flag after recognition has ended
+      isStopping = false;
+
+      // Restart recognition only if it was running and not muted
+      if (isRecognitionRunning && !isMuted && !isStopping) {
+        console.log("Attempting to restart recognition...");
+        setTimeout(() => {
+          try {
+            recognitionRef.current.start();
+            isRecognitionRunning = true;
+            console.log("Recognition restarted after ending.");
+          } catch (error) {
+            console.warn("Failed to restart recognition:", error);
+            isRecognitionRunning = false; // Correct state management
+          }
+        }, 500); // Add delay to ensure proper restart
+      } else {
+        console.log(
+          "Recognition has stopped due to manual stop or mute; it will not restart."
+        );
+      }
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognitionRef.current.start();
+      isRecognitionRunning = true; // Set running state to true when starting
+      console.log(
+        `Starting transcription with source language: ${recognition.lang}`
+      );
     } catch (error) {
-      console.error('Error sending audio to backend:', error);
+      console.error("Error starting recognition:", error);
     }
   };
-  
-  
+
   const connect = (e) => {
     e.preventDefault();
 

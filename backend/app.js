@@ -3,8 +3,6 @@ const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { SpeechClient } = require('@google-cloud/speech'); // Add Google SpeechClient here
-const { Readable } = require('stream'); // Add this line to import Readable
 
 
 require('dotenv').config();
@@ -12,7 +10,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(bodyParser.json({ limit: '50mb' })); // Adjust this limit according to your needs, e.g., '50mb' or more
+app.use(bodyParser.json());
 
 // Middleware to enable CORS
 app.use((req, res, next) => {
@@ -22,8 +20,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON); // Parse the JSON string
-const speechClient = new SpeechClient({ credentials });
+
 
 const TRANSLATE_API_KEY = process.env.TRANSLATE_API_KEY;
 const SPEECH_API_KEY = process.env.SPEECH_API_KEY;
@@ -59,19 +56,16 @@ app.post('/speech-to-text', async (req, res) => {
   const { audioBase64, languageCode } = req.body;
 
   try {
-    const response = await axios.post(
-      `https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`,
-      {
-        config: {
-          encoding: 'WEBM_OPUS',
-          sampleRateHertz: 48000,
-          languageCode,
-        },
-        audio: {
-          content: audioBase64,
-        },
-      }
-    );
+    const response = await axios.post(`https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`, {
+      config: {
+        encoding: 'WEBM_OPUS',
+        sampleRateHertz: 48000,
+        languageCode,
+      },
+      audio: {
+        content: audioBase64,
+      },
+    });
 
     if (response.data.results) {
       res.json(response.data);
@@ -80,10 +74,7 @@ app.post('/speech-to-text', async (req, res) => {
     }
   } catch (error) {
     console.error('Error transcribing audio:', error);
-    res.status(500).json({
-      error: 'Failed to transcribe audio',
-      details: error.response ? error.response.data : error.message,
-    });
+    res.status(500).json({ error: 'Failed to transcribe audio', details: error.message });
   }
 });
 
@@ -242,58 +233,6 @@ Suggestions:`;
     res.status(500).json({ error: 'Failed to generate suggestions', details: error.message });
   }
 });
-
-
-app.post('/real-time-speech-to-text', (req, res) => {
-  try {
-    // Create a readable stream from the incoming audio data
-    const audioStream = new Readable({
-      read() {
-        this.push(Buffer.from(req.body.audioBase64, 'base64'));
-        this.push(null); // End the stream
-      },
-    });
-
-    // Configure the Google Cloud Speech API streaming request
-    const request = {
-      config: {
-        encoding: 'WEBM_OPUS',
-        sampleRateHertz: 48000,
-        languageCode: req.body.languageCode || 'en-US', // Adjust as needed
-      },
-      interimResults: true, // Return interim results for faster feedback
-    };
-
-    // Create a recognize stream using the Speech Client
-    const recognizeStream = speechClient
-      .streamingRecognize(request)
-      .on('data', (data) => {
-        if (data.results[0] && data.results[0].alternatives[0]) {
-          const transcription = data.results[0].alternatives[0].transcript;
-          console.log(`Transcription: ${transcription}`);
-          res.write(JSON.stringify({ transcription }));
-        }
-      })
-      .on('error', (error) => {
-        console.error('Error streaming recognition:', error); // Log the error for debugging
-        res.status(500).send('Error streaming audio recognition');
-      })
-      .on('end', () => {
-        console.log('Streaming ended');
-        res.end();
-      });
-
-    // Pipe the incoming audio stream to the Google Cloud recognize stream
-    audioStream.pipe(recognizeStream);
-  } catch (error) {
-    console.error('Unexpected server error:', error); // Catch and log unexpected errors
-    res.status(500).send('Unexpected server error');
-  }
-});
-
-
-
-
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
