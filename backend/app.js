@@ -195,62 +195,33 @@ app.post('/openai-translate', async (req, res) => {
 });
 
 app.post('/generate-suggestions', async (req, res) => {
-  const { text } = req.body;
-
-  // Log incoming request
-  console.log('Generating suggestions for:', text);
-
-  try {
-    const prompt = `The following sentence has been translated, but could be rephrased to sound more fluent or engaging for the intended audience. Provide three alternative suggestions that maintain the meaning but adjust the tone and phrasing in the same given text language (dont write numbers and dots before the suggestions only the suggestions them self):
-
-Original: "${text}"
-
-Suggestions:`;
-
-    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: 'You are an assistant that provides alternative phrasings for translations, enhancing fluency and alignment with audience expectations in the same given language.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 150,
-    }, {
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    // Extract suggestions from the response
-    const suggestions = response.data.choices[0].message.content.trim().split('\n');
-
-    // Log suggestions
-    console.log('Generated suggestions:', suggestions);
-
-    res.json({ suggestions });
-  } catch (error) {
-    console.error('Error generating suggestions:', error);
-    res.status(500).json({ error: 'Failed to generate suggestions', details: error.message });
-  }
+  console.log('Route is working!'); // Basic log to confirm the route is hit
+  res.send('Received');
 });
 
 
 app.post('/stream-audio', async (req, res) => {
   try {
-    // Ensure req.body is the correct base64 string; adjust if needed
+    // Assuming req.body is an object, check and extract the correct base64 string
     const audioBytes = typeof req.body === 'string' ? req.body : req.body.content;
 
-    // Log to confirm the correct data is being processed
-    console.log('Audio content received:', audioBytes);
+    // Log the extracted content to ensure it's a base64 string
+    console.log('Audio content:', audioBytes);
+
+    // Check if audioBytes is correctly extracted and not undefined or an object
+    if (!audioBytes || typeof audioBytes !== 'string') {
+      console.error('Invalid audio content:', audioBytes);
+      return res.status(400).json({ error: 'Invalid audio content' });
+    }
 
     const request = {
       config: {
-        encoding: 'LINEAR16', // Confirm this matches the format of your audio data
-        sampleRateHertz: 16000, // Confirm this matches the audio's sample rate
+        encoding: 'LINEAR16', // Confirm this matches the audio format
+        sampleRateHertz: 16000, // Confirm this matches the sample rate
         languageCode: 'en-US',
       },
       audio: {
-        content: audioBytes, // Ensure the correct base64 string is passed here
+        content: audioBytes, // Ensure that this is the correct base64 string
       },
     };
 
@@ -277,9 +248,9 @@ app.post('/stream-audio', async (req, res) => {
     } else {
       res.status(500).json({ error: 'Failed to process audio', details: error.message });
     }
-    
   }
 });
+
 
 
 
