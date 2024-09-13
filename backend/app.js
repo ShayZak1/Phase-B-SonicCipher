@@ -237,34 +237,31 @@ Suggestions:`;
 
 app.post('/stream-audio', async (req, res) => {
   try {
-    // Log the received body to inspect its content
     console.log('Received body:', req.body);
 
-    // Extract the audio content and ensure it's Base64 encoded
-    const audioBase64 = req.body.content; // Assuming this matches how audio data is sent
-
-    // Check if audio data is defined and is a string
-    if (!audioBase64 || typeof audioBase64 !== 'string') {
-      console.error('Invalid audio content:', audioBase64);
-      return res.status(400).json({ error: 'Invalid audio content', details: audioBase64 });
+    const { content, languageCode } = req.body; // Ensure these match the expected structure
+    if (!content || typeof content !== 'string') {
+      console.error('Invalid audio content:', content);
+      return res.status(400).json({ error: 'Invalid audio content', details: content });
     }
 
     const request = {
       config: {
-        encoding: 'WEBM_OPUS', // Align encoding with /speech-to-text
-        sampleRateHertz: 48000, // Align sample rate with /speech-to-text
-        languageCode: 'en-US', // Ensure this matches the desired language
+        encoding: 'WEBM_OPUS', // Match the encoding used when recording the audio
+        sampleRateHertz: 48000, // Ensure the sample rate matches
+        languageCode: languageCode || 'en-US',
       },
       audio: {
-        content: audioBase64, // Ensure this is the correct Base64 string
+        content: content,
       },
     };
 
-    // Send request to Google Speech-to-Text API
     const response = await axios.post(
       `https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`,
       request
     );
+
+    console.log('Google API Response:', response.data);
 
     if (response.data.results) {
       const transcription = response.data.results
