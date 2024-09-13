@@ -11,6 +11,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' })); // Adjust the size as needed, e.g., '10mb' or more
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 // Middleware to enable CORS
 app.use((req, res, next) => {
@@ -56,16 +58,19 @@ app.post('/speech-to-text', async (req, res) => {
   const { audioBase64, languageCode } = req.body;
 
   try {
-    const response = await axios.post(`https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`, {
-      config: {
-        encoding: 'WEBM_OPUS',
-        sampleRateHertz: 48000,
-        languageCode,
-      },
-      audio: {
-        content: audioBase64,
-      },
-    });
+    const response = await axios.post(
+      `https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`,
+      {
+        config: {
+          encoding: 'WEBM_OPUS',
+          sampleRateHertz: 48000,
+          languageCode,
+        },
+        audio: {
+          content: audioBase64,
+        },
+      }
+    );
 
     if (response.data.results) {
       res.json(response.data);
@@ -74,7 +79,10 @@ app.post('/speech-to-text', async (req, res) => {
     }
   } catch (error) {
     console.error('Error transcribing audio:', error);
-    res.status(500).json({ error: 'Failed to transcribe audio', details: error.message });
+    res.status(500).json({
+      error: 'Failed to transcribe audio',
+      details: error.response ? error.response.data : error.message,
+    });
   }
 });
 

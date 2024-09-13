@@ -59,19 +59,34 @@ const VideoChat = ({ onClose }) => {
   // Function to toggle mute and control subtitle display
   const toggleMute = () => {
     if (localStreamRef.current) {
-      // Toggle the audio tracks' enabled state
       localStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled;
+        track.enabled = !track.enabled; // Toggle audio track enabled state
       });
-  
+
       const newMutedState = !isMuted;
       setIsMuted(newMutedState);
-  
-      // Optionally, start or stop transcription based on the muted state
-      if (!newMutedState && !isRecognitionRunning) {
-        startRealTimeTranscription(); // Start transcription when unmuted
-      } else if (newMutedState && isRecognitionRunning) {
-        stopRealTimeTranscription(); // Stop transcription when muted
+
+      if (!newMutedState && !isRecognitionRunning && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          isRecognitionRunning = true; // Update state after starting
+          console.log("Recognition started after unmuting...");
+        } catch (error) {
+          console.error("Error starting recognition after unmute:", error);
+        }
+      } else if (
+        newMutedState &&
+        isRecognitionRunning &&
+        recognitionRef.current
+      ) {
+        try {
+          isStopping = true; // Set stopping state to manage restart attempts
+          recognitionRef.current.stop();
+          isRecognitionRunning = false; // Update state after stopping
+          console.log("Recognition stopped due to mute...");
+        } catch (error) {
+          console.error("Error stopping recognition:", error);
+        }
       }
     }
   };
@@ -175,73 +190,97 @@ const VideoChat = ({ onClose }) => {
       console.error("Error translating and sending transcript:", error);
     }
   };
-  const stopRealTimeTranscription = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      isRecognitionRunning = false;
-      console.log("Stopped real-time transcription.");
+  const startRealTimeTranscription = () => {
+    // Check if MediaRecorder is supported
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      console.error('MediaRecorder not supported on this browser.');
+      return;
     }
-  };
-  const startRealTimeTranscription = async () => {
-    try {
-      // Step 1: Capture audio using WebRTC
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const audioStream = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
   
-      // Step 2: Handle audio processing
-      processor.onaudioprocess = (event) => {
-        const inputData = event.inputBuffer.getChannelData(0);
-        const audioBuffer = new Int16Array(inputData.length);
+    // Start capturing audio from the user's microphone
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => {
+        const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
   
-        // Convert audio data to 16-bit PCM format
-        for (let i = 0; i < inputData.length; i++) {
-          audioBuffer[i] = Math.max(-1, Math.min(1, inputData[i])) * 32767;
-        }
+        const audioChunks = [];
   
-        // Step 3: Send processed audio to backend for transcription
-        sendAudioToBackend(audioBuffer);
-      };
+        // Handle data available event to collect audio chunks
+        recorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
   
-      // Connect the audio processor and start capturing
-      audioStream.connect(processor);
-      processor.connect(audioContext.destination);
-  
-      // Store the processor so it can be stopped later
-      recognitionRef.current = { stop: () => processor.disconnect() };
-      isRecognitionRunning = true;
-      console.log("Real-time transcription started using WebRTC audio streaming.");
-    } catch (error) {
-      console.error("Error starting audio capture:", error);
-    }
-  };
-
-  const sendAudioToBackend = async (audioBuffer) => {
-    try {
-      // Convert the audio buffer to a Base64 string
-      const reader = new FileReader();
-      reader.readAsDataURL(new Blob([audioBuffer], { type: 'audio/webm; codecs=opus' }));
-      reader.onloadend = async () => {
-        // Extract the Base64 part from the result
-        const base64Audio = reader.result.split(',')[1]; // Remove the Data URL prefix
-  
-        // Create a payload matching what the backend expects
-        const payload = {
-          content: base64Audio, // Align this with backend expectations
-          languageCode: 'en-US', // Adjust language code as needed
+          // When a chunk is available, convert it to Base64 and send it to the backend
+          if (recorder.state === 'recording') {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            convertBlobToBase64(audioBlob).then((audioBase64) => {
+              sendAudioToBackend(audioBase64, globalSourceLang);
+            });
+          }
         };
   
-        // Send the payload to the backend
-        await axios.post(`${process.env.REACT_APP_BACKEND_URL}/stream-audio`, payload, {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      };
-    } catch (error) {
-      console.error('Error sending audio to backend:', error);
-    }
+        recorder.onstop = () => {
+          stream.getTracks().forEach((track) => track.stop());
+        };
+  
+        // Start recording audio
+        recorder.start(2000); // Adjust the interval as needed to send chunks frequently
+        console.log('Audio recording started');
+      })
+      .catch((error) => {
+        console.error('Error accessing microphone:', error);
+      });
   };
   
+
+  const convertBlobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  
+  const sendAudioToBackend = async (audioBase64, languageCode) => {
+    const maxRetries = 3; // Set a maximum number of retry attempts
+    let attempt = 0;
+  
+    while (attempt < maxRetries) {
+      try {
+        const response = await axios.post(
+          `${process.env.REACT_APP_BACKEND_URL}/speech-to-text`,
+          {
+            audioBase64,
+            languageCode,
+          },
+          { timeout: 10000 } // Increase timeout to handle slow responses
+        );
+  
+        if (response.data.results) {
+          const transcript = response.data.results
+            .map((result) => result.alternatives[0].transcript)
+            .join('\n');
+          sendTranscriptToPeer(transcript); // Send transcript to the peer for display
+          break; // Exit the loop on successful transcription
+        } else {
+          console.error('Unexpected response format:', response.data);
+          break; // Exit the loop if the response format is unexpected
+        }
+      } catch (error) {
+        attempt++;
+        console.error(`Error transcribing audio (Attempt ${attempt}):`, error);
+  
+        // Check if it's a network error and retry if needed
+        if (attempt >= maxRetries || !error.isAxiosError || error.code !== 'ERR_NETWORK') {
+          console.error('Failed to transcribe audio after multiple attempts.');
+          break;
+        }
+  
+        // Optional: Add a delay before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+  };
   
   
   const connect = (e) => {
