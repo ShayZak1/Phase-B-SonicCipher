@@ -236,38 +236,45 @@ Suggestions:`;
 
 
 app.post('/stream-audio', async (req, res) => {
-  const audioBytes = req.body.toString('base64'); // Convert the received audio data to a base64 string
-
   try {
+    const audioBytes = req.body.toString('base64'); // Convert received audio data to base64 string
+
+    const request = {
+      config: {
+        encoding: 'LINEAR16', // Ensure this matches the audio format
+        sampleRateHertz: 16000, // Ensure the sample rate matches
+        languageCode: 'en-US',
+      },
+      audio: {
+        content: audioBytes,
+      },
+    };
+
     const response = await axios.post(
       `https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`,
-      {
-        config: {
-          encoding: 'LINEAR16', // Adjust encoding to match your audio format
-          sampleRateHertz: 16000, // Adjust sample rate according to your audio settings
-          languageCode: 'en-US', // Set the language code as needed
-        },
-        audio: {
-          content: audioBytes, // Pass the base64-encoded audio data
-        },
-      }
+      request
     );
 
     if (response.data.results) {
       const transcription = response.data.results
         .map((result) => result.alternatives[0].transcript)
         .join('\n');
-
-      console.log('Transcription:', transcription);
-      res.json({ transcription });
+      res.status(200).json({ transcription });
     } else {
+      console.error('Unexpected response format:', response.data);
       res.status(500).json({ error: 'Unexpected response format', details: response.data });
     }
   } catch (error) {
-    console.error('Error processing audio:', error);
-    res.status(500).json({ error: 'Failed to transcribe audio', details: error.message });
+    console.error('Error processing audio:', error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      res.status(500).json({ error: 'Failed to process audio', details: error.response.data });
+    } else {
+      res.status(500).json({ error: 'Failed to process audio', details: error.message });
+    }
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
