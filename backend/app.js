@@ -241,22 +241,24 @@ app.post('/stream-audio', async (req, res) => {
     console.log('Received body:', req.body);
 
     // Extract audio content from the request
-    const audioBytes = req.body.content; // Expecting 'content' field to contain Base64 string
+    const audioBytes = req.body.content; // Expecting 'content' field to contain a Base64 string
 
-    // Validate that audioBytes is not undefined and is a string
+    // Check if audioBytes is a string and not empty
     if (!audioBytes || typeof audioBytes !== 'string') {
       console.error('Invalid audio content:', audioBytes);
       return res.status(400).json({ error: 'Invalid audio content', details: audioBytes });
     }
 
+    console.log('Audio content received:', audioBytes.substring(0, 30) + '...'); // Log a snippet of the Base64 content
+
     const request = {
       config: {
-        encoding: 'WEBM_OPUS', // Ensure this matches the encoding used when creating the Blob
-        sampleRateHertz: 48000, // Ensure this matches the sample rate of the audio
+        encoding: 'WEBM_OPUS', // Ensure encoding matches what was used when recording the audio
+        sampleRateHertz: 48000, // Ensure this matches the recorded sample rate
         languageCode: 'en-US',
       },
       audio: {
-        content: audioBytes, // Pass the correct Base64 string
+        content: audioBytes, // Use the correctly structured Base64 audio content
       },
     };
 
