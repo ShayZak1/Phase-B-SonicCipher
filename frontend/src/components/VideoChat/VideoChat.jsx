@@ -219,34 +219,29 @@ const VideoChat = ({ onClose }) => {
 
   const sendAudioToBackend = async (audioBuffer) => {
     try {
-      // Create a Blob from the audio buffer
-      const audioBlob = new Blob([audioBuffer], { type: 'audio/webm; codecs=opus' });
-  
-      // Use FileReader to convert Blob to Base64
+      // Convert the audio buffer to a Base64 string
       const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      
+      reader.readAsDataURL(new Blob([audioBuffer], { type: 'audio/webm; codecs=opus' }));
       reader.onloadend = async () => {
-        const base64Audio = reader.result.split(',')[1]; // Extract Base64 string
-        console.log('Base64 Audio:', base64Audio); // Debug: check if the audio data is correct
+        // Extract the Base64 part from the result
+        const base64Audio = reader.result.split(',')[1]; // Remove the Data URL prefix
   
-        // Send the Base64 encoded audio to the backend
-        const response = await axios.post(
-          `${process.env.REACT_APP_BACKEND_URL}/stream-audio`,
-          { content: base64Audio }, // Ensure this matches the backend structure
-          { headers: { 'Content-Type': 'application/json' } }
-        );
+        // Create a payload matching what the backend expects
+        const payload = {
+          content: base64Audio, // Align this with backend expectations
+          languageCode: 'en-US', // Adjust language code as needed
+        };
   
-        console.log('Response from backend:', response.data);
-      };
-  
-      reader.onerror = (error) => {
-        console.error('Error reading audio data:', error);
+        // Send the payload to the backend
+        await axios.post(`${process.env.REACT_APP_BACKEND_URL}/stream-audio`, payload, {
+          headers: { 'Content-Type': 'application/json' },
+        });
       };
     } catch (error) {
       console.error('Error sending audio to backend:', error);
     }
   };
+  
   
   
   const connect = (e) => {
