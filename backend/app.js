@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
 const path = require('path');
+const { SpeechClient } = require('@google-cloud/speech'); // Add Google SpeechClient here
 
 
 require('dotenv').config();
@@ -11,7 +12,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser.json({ limit: '50mb' })); // Adjust this limit according to your needs, e.g., '50mb' or more
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware to enable CORS
 app.use((req, res, next) => {
@@ -21,7 +21,8 @@ app.use((req, res, next) => {
   next();
 });
 
-
+const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON); // Parse the JSON string
+const speechClient = new SpeechClient({ credentials });
 
 const TRANSLATE_API_KEY = process.env.TRANSLATE_API_KEY;
 const SPEECH_API_KEY = process.env.SPEECH_API_KEY;
@@ -242,56 +243,42 @@ Suggestions:`;
 });
 
 
-app.post('/stream-audio', async (req, res) => {
+app.post('/real-time-speech-to-text', async (req, res) => {
+  const { audioBase64, languageCode } = req.body;
+
   try {
-    console.log('Received body:', req.body);
+    // Convert the Base64-encoded audio to a Buffer
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
 
-    const { content, languageCode } = req.body; // Ensure these match the expected structure
-    if (!content || typeof content !== 'string') {
-      console.error('Invalid audio content:', content);
-      return res.status(400).json({ error: 'Invalid audio content', details: content });
-    }
-
+    // Configure the request for Google Speech-to-Text
     const request = {
       config: {
-        encoding: 'WEBM_OPUS', // Match the encoding used when recording the audio
-        sampleRateHertz: 48000, // Ensure the sample rate matches
-        languageCode: languageCode || 'en-US',
+        encoding: 'WEBM_OPUS',
+        sampleRateHertz: 48000,
+        languageCode: languageCode || 'en-US', // Set default language if not provided
       },
       audio: {
-        content: content,
+        content: audioBuffer.toString('base64'), // Convert buffer back to Base64 for Google API
       },
     };
 
-    const response = await axios.post(
-      `https://speech.googleapis.com/v1/speech:recognize?key=${SPEECH_API_KEY}`,
-      request
-    );
+    // Make the request to Google Speech-to-Text API
+    const [response] = await speechClient.recognize(request);
 
-    console.log('Google API Response:', response.data);
-
-    if (response.data.results) {
-      const transcription = response.data.results
+    // Process and send back the transcription
+    if (response.results && response.results.length > 0) {
+      const transcription = response.results
         .map((result) => result.alternatives[0].transcript)
         .join('\n');
-      res.status(200).json({ transcription });
+      res.json({ transcription });
     } else {
-      console.error('Unexpected response format:', response.data);
-      res.status(500).json({ error: 'Unexpected response format', details: response.data });
+      res.status(500).json({ error: 'No transcription available', details: response });
     }
   } catch (error) {
-    console.error('Error processing audio:', error.message);
-    if (error.response) {
-      console.error('Error response from Google API:', error.response.data);
-      res.status(500).json({ error: 'Failed to process audio', details: error.response.data });
-    } else {
-      res.status(500).json({ error: 'Failed to process audio', details: error.message });
-    }
+    console.error('Error processing audio chunk:', error.message);
+    res.status(500).json({ error: 'Failed to process audio chunk', details: error.message });
   }
 });
-
-
-
 
 
 

@@ -191,44 +191,39 @@ const VideoChat = ({ onClose }) => {
     }
   };
   const startRealTimeTranscription = () => {
-    // Check if MediaRecorder is supported
+    // Check if MediaRecorder and required APIs are supported
     if (!navigator.mediaDevices || !window.MediaRecorder) {
-      console.error('MediaRecorder not supported on this browser.');
+      console.error('MediaRecorder is not supported in this browser.');
       return;
     }
   
-    // Start capturing audio from the user's microphone
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then((stream) => {
-        const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      // Reduce chunk interval to 200 ms for faster processing
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      const audioChunks = [];
   
-        const audioChunks = [];
-  
-        // Handle data available event to collect audio chunks
-        recorder.ondataavailable = (event) => {
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
           audioChunks.push(event.data);
   
-          // When a chunk is available, convert it to Base64 and send it to the backend
-          if (recorder.state === 'recording') {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            convertBlobToBase64(audioBlob).then((audioBase64) => {
-              sendAudioToBackend(audioBase64, globalSourceLang);
-            });
-          }
-        };
+          // Convert chunk to Base64 and send immediately
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          convertBlobToBase64(audioBlob).then((audioBase64) => {
+            sendAudioToBackend(audioBase64, 'en-US'); // Use the appropriate language code
+          });
+        }
+      };
   
-        recorder.onstop = () => {
-          stream.getTracks().forEach((track) => track.stop());
-        };
+      recorder.start(200); // Send chunks every 200 milliseconds
   
-        // Start recording audio
-        recorder.start(3000); // Adjust the interval as needed to send chunks frequently
-        console.log('Audio recording started');
-      })
-      .catch((error) => {
-        console.error('Error accessing microphone:', error);
-      });
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+      };
+    }).catch((error) => {
+      console.error('Error accessing microphone:', error);
+    });
   };
+  
   
 
   const convertBlobToBase64 = (blob) => {
@@ -242,43 +237,22 @@ const VideoChat = ({ onClose }) => {
 
   
   const sendAudioToBackend = async (audioBase64, languageCode) => {
-    const maxRetries = 3; // Set a maximum number of retry attempts
-    let attempt = 0;
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/real-time-speech-to-text`, {
+        audioBase64,
+        languageCode,
+      });
   
-    while (attempt < maxRetries) {
-      try {
-        const response = await axios.post(
-          `${process.env.REACT_APP_BACKEND_URL}/speech-to-text`,
-          {
-            audioBase64,
-            languageCode,
-          },
-          { timeout: 10000 } // Increase timeout to handle slow responses
-        );
-  
-        if (response.data.results) {
-          const transcript = response.data.results
-            .map((result) => result.alternatives[0].transcript)
-            .join('\n');
-          sendTranscriptToPeer(transcript); // Send transcript to the peer for display
-          break; // Exit the loop on successful transcription
-        } else {
-          console.error('Unexpected response format:', response.data);
-          break; // Exit the loop if the response format is unexpected
-        }
-      } catch (error) {
-        attempt++;
-        console.error(`Error transcribing audio (Attempt ${attempt}):`, error);
-  
-        // Check if it's a network error and retry if needed
-        if (attempt >= maxRetries || !error.isAxiosError || error.code !== 'ERR_NETWORK') {
-          console.error('Failed to transcribe audio after multiple attempts.');
-          break;
-        }
-  
-        // Optional: Add a delay before retrying
-        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      if (response.data.results) {
+        const transcript = response.data.results
+          .map((result) => result.alternatives[0].transcript)
+          .join('\n');
+        console.log('Transcription:', transcript); // Display the transcript in your UI
+      } else {
+        console.error('Unexpected response format:', response.data);
       }
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
     }
   };
   
