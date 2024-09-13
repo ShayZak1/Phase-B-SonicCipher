@@ -191,30 +191,25 @@ const VideoChat = ({ onClose }) => {
     }
   };
   const startRealTimeTranscription = () => {
-    // Check if MediaRecorder and required APIs are supported
     if (!navigator.mediaDevices || !window.MediaRecorder) {
       console.error('MediaRecorder is not supported in this browser.');
       return;
     }
   
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-      // Reduce chunk interval to 200 ms for faster processing
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-      const audioChunks = [];
   
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          audioChunks.push(event.data);
-  
           // Convert chunk to Base64 and send immediately
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const audioBlob = new Blob([event.data], { type: 'audio/webm' });
           convertBlobToBase64(audioBlob).then((audioBase64) => {
             sendAudioToBackend(audioBase64, 'en-US'); // Use the appropriate language code
           });
         }
       };
   
-      recorder.start(200); // Send chunks every 200 milliseconds
+      recorder.start(200); // Capture audio every 200 ms
   
       recorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
@@ -238,21 +233,24 @@ const VideoChat = ({ onClose }) => {
   
   const sendAudioToBackend = async (audioBase64, languageCode) => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/real-time-speech-to-text`, {
-        audioBase64,
-        languageCode,
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/real-time-speech-to-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioBase64, languageCode }),
       });
   
-      if (response.data.results) {
-        const transcript = response.data.results
-          .map((result) => result.alternatives[0].transcript)
-          .join('\n');
-        console.log('Transcription:', transcript); // Display the transcript in your UI
-      } else {
-        console.error('Unexpected response format:', response.data);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+  
+      // Continuously read the response stream for new transcriptions
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true });
+        console.log('Transcription:', text);
       }
     } catch (error) {
-      console.error('Error transcribing audio:', error);
+      console.error('Error sending audio to backend:', error);
     }
   };
   

@@ -243,41 +243,46 @@ Suggestions:`;
 });
 
 
-app.post('/real-time-speech-to-text', async (req, res) => {
-  const { audioBase64, languageCode } = req.body;
+app.post('/real-time-speech-to-text', (req, res) => {
+  // Create a readable stream from the incoming audio data
+  const audioStream = new Readable({
+    read() {
+      this.push(Buffer.from(req.body.audioBase64, 'base64'));
+      this.push(null); // End the stream
+    },
+  });
 
-  try {
-    // Convert the Base64-encoded audio to a Buffer
-    const audioBuffer = Buffer.from(audioBase64, 'base64');
+  // Configure the Google Cloud Speech API streaming request
+  const request = {
+    config: {
+      encoding: 'WEBM_OPUS',
+      sampleRateHertz: 48000,
+      languageCode: req.body.languageCode || 'en-US', // Adjust as needed
+    },
+    interimResults: true, // Return interim results for faster feedback
+  };
 
-    // Configure the request for Google Speech-to-Text
-    const request = {
-      config: {
-        encoding: 'WEBM_OPUS',
-        sampleRateHertz: 48000,
-        languageCode: languageCode || 'en-US', // Set default language if not provided
-      },
-      audio: {
-        content: audioBuffer.toString('base64'), // Convert buffer back to Base64 for Google API
-      },
-    };
+  // Create a recognize stream using the Speech Client
+  const recognizeStream = speechClient
+    .streamingRecognize(request)
+    .on('data', (data) => {
+      if (data.results[0] && data.results[0].alternatives[0]) {
+        const transcription = data.results[0].alternatives[0].transcript;
+        console.log(`Transcription: ${transcription}`);
+        res.write(JSON.stringify({ transcription }));
+      }
+    })
+    .on('error', (error) => {
+      console.error('Error streaming recognition:', error);
+      res.status(500).send('Error streaming audio recognition');
+    })
+    .on('end', () => {
+      console.log('Streaming ended');
+      res.end();
+    });
 
-    // Make the request to Google Speech-to-Text API
-    const [response] = await speechClient.recognize(request);
-
-    // Process and send back the transcription
-    if (response.results && response.results.length > 0) {
-      const transcription = response.results
-        .map((result) => result.alternatives[0].transcript)
-        .join('\n');
-      res.json({ transcription });
-    } else {
-      res.status(500).json({ error: 'No transcription available', details: response });
-    }
-  } catch (error) {
-    console.error('Error processing audio chunk:', error.message);
-    res.status(500).json({ error: 'Failed to process audio chunk', details: error.message });
-  }
+  // Pipe the incoming audio stream to the Google Cloud recognize stream
+  audioStream.pipe(recognizeStream);
 });
 
 
