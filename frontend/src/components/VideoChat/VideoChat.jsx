@@ -219,13 +219,21 @@ const VideoChat = ({ onClose }) => {
 
   const sendAudioToBackend = async (audioBuffer) => {
     try {
-      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/stream-audio`, audioBuffer, {
-        headers: { 'Content-Type': 'application/octet-stream' },
-      });
+      // Convert audio buffer to a base64 string
+      const audioBase64 = Buffer.from(audioBuffer).toString('base64');
+  
+      // Send the audio data in JSON format with the correct structure
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/stream-audio`, 
+        { content: audioBase64 }, // Send the audio data as { content: audioBase64 }
+        {
+          headers: { 'Content-Type': 'application/json' }, // Ensure the content type is JSON
+        }
+      );
     } catch (error) {
       console.error("Error sending audio to backend:", error);
     }
   };
+  
   const connect = (e) => {
     e.preventDefault();
 
