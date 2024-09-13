@@ -222,7 +222,7 @@ const VideoChat = ({ onClose }) => {
         };
   
         // Start recording audio
-        recorder.start(2000); // Adjust the interval as needed to send chunks frequently
+        recorder.start(3000); // Adjust the interval as needed to send chunks frequently
         console.log('Audio recording started');
       })
       .catch((error) => {

@@ -10,9 +10,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(bodyParser.json());
-app.use(bodyParser.json({ limit: '10mb' })); // Adjust the size as needed, e.g., '10mb' or more
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+app.use(bodyParser.json({ limit: '50mb' })); // Adjust this limit according to your needs, e.g., '50mb' or more
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware to enable CORS
 app.use((req, res, next) => {
