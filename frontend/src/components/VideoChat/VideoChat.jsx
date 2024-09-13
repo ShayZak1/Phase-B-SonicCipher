@@ -211,7 +211,35 @@ const VideoChat = ({ onClose }) => {
 
     recognition.onerror = (event) => {
       console.error("Recognition error:", event.error);
+      if (event.error === "service-not-available" || event.error === "network") {
+    // Prevent further restarts during the stop process
+    isStopping = true;
+    clearTimeout(restartAttemptTimeout); // Clear any pending restart attempts
 
+    // Fully stop recognition before trying to restart
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.warn("Failed to stop recognition:", error);
+      }
+    }
+
+    // Delay next restart attempt to ensure full stop
+    restartAttemptTimeout = setTimeout(() => {
+      if (isRecognitionRunning && !isMuted && !isStopping) {
+        try {
+          recognitionRef.current.start();
+          console.log("Recognition restarted after service not available error.");
+          isRecognitionRunning = true;
+        } catch (error) {
+          console.warn("Failed to restart recognition:", error);
+          isRecognitionRunning = false; // Correct state management
+        }
+      }
+    }, 1000); // Delay to prevent immediate looping restarts
+    return;
+  }
       if (event.error === "aborted") {
         console.log("Recognition aborted; will attempt to restart if running.");
 
