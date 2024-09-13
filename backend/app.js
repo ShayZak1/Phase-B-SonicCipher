@@ -237,26 +237,26 @@ Suggestions:`;
 
 app.post('/stream-audio', async (req, res) => {
   try {
-    // Assuming req.body is an object, check and extract the correct base64 string
-    const audioBytes = typeof req.body === 'string' ? req.body : req.body.content;
+    // Log the received body to inspect its content
+    console.log('Received body:', req.body);
 
-    // Log the extracted content to ensure it's a base64 string
-    console.log('Audio content:', audioBytes);
+    // Extract audio content from the request
+    const audioBytes = req.body.content; // Adjust this based on actual structure
 
-    // Check if audioBytes is correctly extracted and not undefined or an object
+    // Validate that audioBytes is not undefined and is a string
     if (!audioBytes || typeof audioBytes !== 'string') {
       console.error('Invalid audio content:', audioBytes);
-      return res.status(400).json({ error: 'Invalid audio content' });
+      return res.status(400).json({ error: 'Invalid audio content', details: audioBytes });
     }
 
     const request = {
       config: {
-        encoding: 'LINEAR16', // Confirm this matches the audio format
-        sampleRateHertz: 16000, // Confirm this matches the sample rate
+        encoding: 'LINEAR16', // Confirm this matches the format of your audio data
+        sampleRateHertz: 16000, // Confirm this matches the audio's sample rate
         languageCode: 'en-US',
       },
       audio: {
-        content: audioBytes, // Ensure that this is the correct base64 string
+        content: audioBytes, // Pass the correct base64 string
       },
     };
 
@@ -285,6 +285,7 @@ app.post('/stream-audio', async (req, res) => {
     }
   }
 });
+
 
 
 
