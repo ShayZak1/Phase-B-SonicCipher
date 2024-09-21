@@ -131,7 +131,7 @@ The application can also be accessed via the deployed version hosted on Vercel:
 - **Gmail Account:** For receiving user messages and feedback.
 
 ## Contact
-If you have any questions or need support, please reach out via the "Contact Us" option in the application or by sending an email to [Sonicciphercontact@gmail.com](mailto:Sonicciphercontact@gmail.com).
+If you have any questions or need support, please reach out via the "Contact Us" option in the application    or by sending an email to [Sonicciphercontact@gmail.com](mailto:Sonicciphercontact@gmail.com). 
 
 ---
 
