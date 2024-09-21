@@ -1,70 +1,139 @@
-# Getting Started with Create React App
+Apologies for the confusion. Let me put everything into a single code block so that all the sections are grouped together seamlessly. Here it is:
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+```markdown
+# SonicCipher
 
-## Available Scripts
+SonicCipher is a versatile translation platform that offers both free and premium translation services, including text-to-speech and video translation capabilities. This repository contains the code for both the frontend and backend components of the application.
 
-In the project directory, you can run:
+## Table of Contents
+- [Installation](#installation)
+- [Usage](#usage)
+- [Features](#features)
+- [System Dependencies](#system-dependencies)
+- [Deployment](#deployment)
+- [Maintenance](#maintenance)
+- [Contact](#contact)
 
-### `npm start`
+## Installation
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Local Run
+To run the project locally, follow these steps:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/ShayZak1/Phase-B-SonicCipher
+   ```
 
-### `npm test`
+2. **Navigate to the Project Directory:**
+   ```bash
+   cd path/to/your/directory
+   ```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+3. **Install Frontend Packages:**
+   ```bash
+   cd frontend
+   npm install
+   ```
 
-### `npm run build`
+4. **Install Backend Packages:**
+   ```bash
+   cd ../backend
+   npm install
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Usage
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Running the Client
+1. **Navigate to the Frontend Directory:**
+   ```bash
+   cd frontend
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. **Start the Client:**
+   ```bash
+   npm start
+   ```
+   After running this command, you can navigate to `http://localhost:3000/` in your web browser.
 
-### `npm run eject`
+### Running the Server
+1. **Navigate to the Backend Directory:**
+   ```bash
+   cd backend
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+2. **Start the Server:**
+   ```bash
+   node app.js
+   ```
+   After running this command, the server will be accessible at `http://localhost:5000/`.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Environment Variables
+Create a `.env` file in the frontend directory and add the following line to connect the frontend with the backend:
+```plaintext
+REACT_APP_BACKEND_URL=https://sonic-cipher-server.vercel.app
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Features
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Main Pages and Key Features
+- **Home Page:** The gateway to the platform, providing quick access to essential features like starting a translation session or engaging in live video conversations.
+- **Translation Options:**
+  - **Free Method:** Basic translation service with text input and translation output.
+  - **Premium Method:** Enhanced translation with additional features like user specifications, rephrased translations, and personalized profiles.
+- **Video Translation:** Real-time peer-to-peer video chat with live translation and captioning.
 
-## Learn More
+### Additional Features
+- View Translation History
+- Copy Translated Text
+- Change Read-Aloud Voice (Male/Female)
+- Video Translation with Secure Peer-to-Peer Connection
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## System Dependencies
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Frontend
+The client-side of the application uses the following key libraries:
+- **React** (^18.2.0)
+- **React DOM** (^18.2.0)
+- **React Router DOM** (^6.22.0)
+- **Tailwind CSS** (^3.4.1)
+- **SweetAlert2** (^11.10.5)
+- **heroicons/react** (^2.1.4)
+- **preact/compat** (^17.1.2)
+- **Axios** (^1.7.2)
+- **PeerJS** (^1.3.2)
+- **Preact** (^10.23.1)
+- **Cobe** (^0.6.3)
+- **Web Vitals** (^2.1.4)
 
-### Code Splitting
+### Backend
+The server-side relies on:
+- **Node.js**
+- **google-cloud/speech** (^6.6.1)
+- **Axios** (^1.7.2)
+- **Body-Parser** (^1.20.2)
+- **Dotenv** (^16.4.5)
+- **Express** (^4.19.2)
+- **Peer** (^1.0.2)
+- **WS (WebSocket)** (^8.18.0)
+- **Nodemon** (^3.1.4)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Deployment
+The application can also be accessed via the deployed version hosted on Vercel:
+- **Frontend:** [SonicCipher (Vercel)](https://sonic-cipher-omega.vercel.app/)
+- **Backend:** [SonicCipher Server (Vercel)](https://sonic-cipher-server.vercel.app/)
 
-### Analyzing the Bundle Size
+## Maintenance
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Managing Tools and Subscriptions
+- **Google Speech-to-Text API:** Used for converting spoken language into text.
+- **Google Translate API:** Provides text translation between selected languages.
+- **Google Text-to-Speech API:** Converts translated text into speech.
+- **OpenAI API (GPT-4 Model):** Enhances translation quality with advanced natural language processing.
+- **PeerJS (WebRTC):** Facilitates peer-to-peer communication during live translation sessions.
+- **Gmail Account:** For receiving user messages and feedback.
 
-### Making a Progressive Web App
+## Contact
+If you have any questions or need support, please reach out via the "Contact Us" option in the application or by sending an email to [sonicciphercontact@gmail.com](mailto:sonicciphercontact@gmail.com).
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Now everything is contained in a single block, making it easy for you to copy and paste it directly into your `README.md` file.
