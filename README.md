@@ -1,6 +1,4 @@
-Apologies for the confusion. Let me put everything into a single code block so that all the sections are grouped together seamlessly. Here it is:
 
-```markdown
 # SonicCipher
 
 SonicCipher is a versatile translation platform that offers both free and premium translation services, including text-to-speech and video translation capabilities. This repository contains the code for both the frontend and backend components of the application.
@@ -133,7 +131,7 @@ The application can also be accessed via the deployed version hosted on Vercel:
 - **Gmail Account:** For receiving user messages and feedback.
 
 ## Contact
-If you have any questions or need support, please reach out via the "Contact Us" option in the application or by sending an email to [sonicciphercontact@gmail.com](mailto:sonicciphercontact@gmail.com).
-```
+If you have any questions or need support, please reach out via the "Contact Us" option in the application or by sending an email to [Sonicciphercontact@gmail.com](mailto:Sonicciphercontact@gmail.com).
 
-Now everything is contained in a single block, making it easy for you to copy and paste it directly into your `README.md` file.
+---
+
